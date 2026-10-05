@@ -19,10 +19,10 @@ System_Boundary(platform, "Тёплый дом — целевая архитек
   Container(telemetry, "Телеметрия", "HTTP API / AMQP", "Показания и планировщик опроса")
   Container(monolith, "Монолит / legacy-адаптер", "Go / Gin", "Legacy push / polling-фасад")
   Container(transport, "Взаимодействие с устройствами", "HTTP / AMQP / MQTT", "Доставка, протоколы и подтверждения")
-  Container(heating, "Отопление", "HTTP API / AMQP", "Команды отоплению")
+  Container(heating, "Управление отоплением", "HTTP API / AMQP", "Команды отоплению")
   Container(lighting, "Освещение", "HTTP API / AMQP", "Команды освещению")
   Container(gates, "Ворота", "HTTP API / AMQP", "Команды воротам")
-  Container(video, "Видеонаблюдение", "HTTP API / AMQP", "Команды камерам и видеодоступ")
+  Container(video, "Управление видеонаблюдением", "HTTP API / AMQP", "Команды камерам и видеодоступ")
   ContainerQueue(broker, "Брокер сообщений", "RabbitMQ + MQTT plugin", "Внутренний и MQTT vhost")
 }
 

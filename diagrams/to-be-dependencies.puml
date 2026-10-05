@@ -14,10 +14,10 @@ System_Boundary(platform, "Тёплый дом — целевая архитек
   Container(telemetry, "Телеметрия", "HTTP / AMQP", "Показания и планировщик опроса")
   Container(monolith, "Монолит / legacy-адаптер", "Go / Gin", "Legacy push / polling-фасад")
   Container(transport, "Взаимодействие с устройствами", "HTTP / AMQP / MQTT", "Доставка, протоколы и подтверждения")
-  Container(heating, "Отопление", "HTTP / AMQP", "Команды отоплению")
+  Container(heating, "Управление отоплением", "HTTP / AMQP", "Команды отоплению")
   Container(lighting, "Освещение", "HTTP / AMQP", "Команды освещению")
   Container(gates, "Ворота", "HTTP / AMQP", "Команды воротам")
-  Container(video, "Видеонаблюдение", "HTTP / AMQP", "Команды камерам и видеодоступ")
+  Container(video, "Управление видеонаблюдением", "HTTP / AMQP", "Команды камерам и видеодоступ")
 }
 
 Rel_U(telemetry, registry, "Профили опроса", "HTTP")

@@ -11,10 +11,10 @@ Container(access, "Дома и доступ", "HTTP API", "Проверка де
 Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
 Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
 Boundary(command_services, "Сервисы управления — четыре приложения") {
-  Container(heating, "Отопление", "HTTP API", "Права, привязка и команды")
+  Container(heating, "Управление отоплением", "HTTP API", "Права, привязка и команды")
   Container(lighting, "Освещение", "HTTP API", "Права, привязка и команды")
   Container(gates, "Ворота", "HTTP API", "Права, привязка и команды")
-  Container(video, "Видеонаблюдение", "HTTP API", "Команды камерам; проверки прав и привязки")
+  Container(video, "Управление видеонаблюдением", "HTTP API", "Команды камерам; проверки прав и привязки")
 }
 Container_Boundary(service, "Автоматизация") {
   Component(api, "API сценариев", "HTTP", "Создание, изменение, включение и отключение правил")

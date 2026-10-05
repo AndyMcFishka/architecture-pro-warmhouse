@@ -6,7 +6,7 @@ top to bottom direction
 skinparam nodesep 35
 skinparam ranksep 40
 
-package "Сервис отопления (аналогично: свет / ворота / камеры)" as domain {
+package "Сервис управления отоплением (аналогично: свет / ворота / камеры)" as domain {
   class CommandHandler {
     +submit(actor, deviceId, action, key): Command
     +applyResult(eventId, commandId, result)

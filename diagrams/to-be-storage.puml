@@ -5,13 +5,13 @@ LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 40
 System_Boundary(platform, "Тёплый дом") {
-  Container(heating, "Отопление", "Сервис", "Владеет БД heating")
+  Container(heating, "Управление отоплением", "Сервис", "Владеет БД heating")
   ContainerDb(db_heating, "heating", "PostgreSQL", "Отдельная база и роль")
   Container(lighting, "Освещение", "Сервис", "Владеет БД lighting")
   ContainerDb(db_lighting, "lighting", "PostgreSQL", "Отдельная база и роль")
   Container(gates, "Ворота", "Сервис", "Владеет БД gates")
   ContainerDb(db_gates, "gates", "PostgreSQL", "Отдельная база и роль")
-  Container(video, "Видеонаблюдение", "Сервис", "Владеет БД video")
+  Container(video, "Управление видеонаблюдением", "Сервис", "Владеет БД video")
   ContainerDb(db_video, "video", "PostgreSQL", "Отдельная база и роль")
   Container(registry, "Учёт устройств", "Сервис", "Владеет БД devices")
   ContainerDb(db_registry, "devices", "PostgreSQL", "Отдельная база и роль")

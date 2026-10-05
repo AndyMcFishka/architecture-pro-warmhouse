@@ -1,6 +1,6 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Отопление
+title Тёплый дом — Components: Управление отоплением
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
@@ -10,7 +10,7 @@ Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
 Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
 Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
 Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
-Container_Boundary(service, "Отопление") {
+Container_Boundary(service, "Управление отоплением") {
   Component(api, "API команд и статусов", "HTTP", "Команда, Idempotency-Key; возвращает command_id")
   Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
   Component(commands, "Обработчик команд", "Модуль", "Правила отопления; Command + sequence + outbox")
@@ -32,7 +32,7 @@ Rel(broker, results, "CommandResult / DeliveryClosed")
 Rel(results, registry, "Актуальность CommandResult")
 Rel(results, db, "Результат + processed event в транзакции")
 footer
-Показан сервис отопления; освещение, ворота и видеонаблюдение — отдельные сервисы с собственными БД.
+Показан сервис управления отоплением; освещение, ворота и управление видеонаблюдением — отдельные сервисы с собственными БД.
 У каждого управляемого устройства один владелец команд; доставка — в сервисе взаимодействия.
 Повторный ключ с другим содержимым отклоняется. ACK результата — после commit.
 end footer

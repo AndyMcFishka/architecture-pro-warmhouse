@@ -11,7 +11,7 @@ participant "Dispatcher / legacy client\nвзаимодействия" as transp
 participant "Legacy API /\nTemperatureService" as monolith
 participant "Старый датчик" as sensor
 participant "RuleEvaluator / runner\nавтоматизации" as automation
-participant "CommandHandler\nсервиса отопления" as control
+participant "CommandHandler\nсервиса управления отоплением" as control
 
 telemetry -> telemetry: Наступил срок опроса; профиль устройства\nполучен из сервиса учёта
 telemetry -> db: Транзакция: уникальный слот опроса +\noutbox PollRequested(requestId, deviceId, houseId, bindingVersion)

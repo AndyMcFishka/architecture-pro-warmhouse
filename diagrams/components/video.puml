@@ -1,6 +1,6 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Видеонаблюдение
+title Тёплый дом — Components: Управление видеонаблюдением
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
@@ -9,7 +9,7 @@ Container(idp, "Keycloak", "OIDC / JWKS", "Ключи проверки JWT")
 Container(access, "Дома и доступ", "HTTP API", "Раздельные права просмотра и управления")
 Container(registry, "Учёт устройств", "HTTP API", "Камера, дом и активная привязка")
 Container(broker, "RabbitMQ", "AMQP", "Команды и результаты; внутренний vhost")
-Container_Boundary(service, "Видеонаблюдение") {
+Container_Boundary(service, "Управление видеонаблюдением") {
   Component(api, "API камер", "HTTP", "Команды, статусы и ссылки на поток")
   Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; действующие права и привязка камеры")
   Component(commands, "Обработчик команд", "Модуль", "Возможности камеры; Command + sequence + outbox")

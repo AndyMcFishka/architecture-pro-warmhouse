@@ -5,7 +5,7 @@ skinparam sequenceMessageAlign center
 skinparam maxMessageSize 220
 autonumber
 actor "Клиент" as client
-participant "CommandHandler\nотопления" as handler
+participant "CommandHandler\nсервиса управления отоплением" as handler
 database "БД heating" as domain
 participant "Outbox relay" as relay
 queue "RabbitMQ\nвнутренний vhost" as broker
