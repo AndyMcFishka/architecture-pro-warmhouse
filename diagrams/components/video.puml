@@ -1,0 +1,42 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: Видеонаблюдение
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 50
+Container(client, "Клиент / автоматизация", "HTTPS / HTTP", "Команды камере; клиент смотрит поток напрямую")
+Container(idp, "Keycloak", "OIDC / JWKS", "Ключи проверки JWT")
+Container(access, "Дома и доступ", "HTTP API", "Раздельные права просмотра и управления")
+Container(registry, "Учёт устройств", "HTTP API", "Камера, дом и активная привязка")
+Container(broker, "RabbitMQ", "AMQP", "Команды и результаты; внутренний vhost")
+Container_Boundary(service, "Видеонаблюдение") {
+  Component(api, "API камер", "HTTP", "Команды, статусы и ссылки на поток")
+  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; действующие права и привязка камеры")
+  Component(commands, "Обработчик команд", "Модуль", "Возможности камеры; Command + sequence + outbox")
+  Component(results, "Обработчик результатов", "Consumer", "Dedup и resultVersion; проверка привязки")
+  Component(relay, "Публикатор outbox", "Фоновый обработчик", "CommandRequested; mandatory + confirm без return")
+  Component(links, "Выдача ссылки", "Модуль", "Ограничивает доступ и срок средствами камеры")
+}
+System_Ext(camera, "Совместимая камера", "HTTPS API временных URL; защищённый браузерный поток")
+ContainerDb(db, "БД video", "PostgreSQL", "Команды, результаты, outbox и профили потоков")
+Rel(client, api, "Команды / статусы / ссылка")
+Rel(api, auth, "Проверяет запрос")
+Rel(auth, idp, "Получает JWKS")
+Rel(auth, registry, "Камера / дом / привязка")
+Rel(auth, access, "Право на операцию")
+Rel(api, links, "После проверки доступа")
+Rel(links, db, "Читает профиль потока")
+footer Видео идёт напрямую. После TTL клиент повторно проверяет доступ через платформу; мгновенный отзыв зависит от камеры.
+Rel(links, camera, "Временный URL", "HTTPS API камеры")
+Rel(client, camera, "Видеопоток; подпись и TTL", "HLS / HTTPS для совместимого профиля")
+Rel(api, commands, "Команда после проверки прав")
+Rel(commands, registry, "Возможности / commandOwner")
+Rel(commands, db, "Command + sequence + outbox", "Транзакция")
+Rel(relay, db, "Читает / отмечает outbox")
+Rel(relay, broker, "CommandRequested")
+Rel(broker, results, "CommandResult / DeliveryClosed")
+Rel(results, registry, "Актуальность результата устройства")
+Rel(results, db, "Статус + dedup", "Транзакция")
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,56 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: Взаимодействие с устройствами
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 50
+
+Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
+Container(access, "Дома и доступ", "HTTP API", "Актуальное право автора команды")
+Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
+Container(device_bus, "RabbitMQ: vhost устройств", "MQTT / TLS", "Тот же брокер; ACL topics, exchange и очередей")
+Container(devices, "Новые устройства", "HTTPS", "HTTP polling, показания и результаты")
+Container(monolith, "Монолит / legacy-адаптер", "HTTP API", "Старый протокол и доступ к оборудованию")
+Container_Boundary(service, "Взаимодействие с устройствами") {
+  Component(expiry, "Обработка сроков и отмены", "Фоновый обработчик", "Сроки / отмена; DeliveryClosed и resultVersion")
+  Component(inbox, "Приём внутренних запросов", "AMQP consumer", "CommandRequested / PollRequested; inbox до ACK")
+  Component(dispatcher, "Диспетчер доставки", "Фоновый обработчик", "Права, привязка, TTL и sequence; одна команда на устройство")
+  Component(mqtt, "MQTT-адаптер", "AMQP ↔ MQTT vhost", "Выдаёт команды; принимает сообщения только из разрешённого topic устройства")
+  Component(http, "HTTP-адаптер устройств", "HTTPS API", "Аутентифицирует устройство; выдаёт его команды; принимает push и результаты")
+  Component(legacy, "Клиент legacy API", "HTTP client", "Вызывает монолит с сервисной аутентификацией")
+  Component(ingest, "Приём и нормализация", "Модуль", "Источник, bindingVersion, correlation_id; пропуск устаревших")
+  Component(relay, "Публикатор outbox", "Фоновый обработчик", "Публикует измерения и результаты во внутренний vhost")
+}
+ContainerDb(db, "БД connectivity", "PostgreSQL", "Своя БД и роль")
+
+Rel(broker, inbox, "CommandRequested / PollRequested")
+Rel(expiry, db, "Статус + outbox, транзакция")
+Rel(inbox, db, "Inbox + задание в транзакции")
+Rel(dispatcher, db, "Забирает задания; хранит попытки")
+Rel(dispatcher, registry, "ACTIVE / bindingVersion / owner")
+Rel(dispatcher, access, "Право на выдачу")
+Rel(http, dispatcher, "Проверка перед выдачей")
+Rel(ingest, registry, "Актуальная привязка")
+Rel(dispatcher, http, "HTTP / legacy polling")
+Rel(dispatcher, mqtt, "Выбирает MQTT")
+Rel(dispatcher, legacy, "Выбирает legacy/push")
+Rel(monolith, http, "Legacy polling", "Внутренний HTTP")
+Rel(http, db, "Pending, прежний ID, TTL")
+Rel(mqtt, device_bus, "Команды и сообщения устройства")
+Rel(devices, http, "Забирает команду / отправляет данные")
+Rel(legacy, monolith, "Опрос / команда")
+Rel(mqtt, ingest, "Сообщение из vhost устройств")
+Rel(http, ingest, "Проверенные данные устройства")
+Rel(legacy, ingest, "Ответ старого протокола")
+Rel(ingest, db, "Результат + outbox в транзакции")
+Rel(relay, db, "Читает / отмечает outbox")
+Rel(relay, broker, "MeasurementReceived / CommandResult / DeliveryClosed / PollFailed")
+footer
+Результат адресуется commandOwner; внутренние публикации: mandatory + confirm без basic.return.
+При недоступности реестра или сервиса прав выдача приостанавливается.
+Неактуальные сообщения: ACK после записи причины пропуска; без выполнения и новых измерений.
+ACK брокера не подтверждает физическое выполнение. Неизвестный результат не превращается в успех.
+end footer
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml

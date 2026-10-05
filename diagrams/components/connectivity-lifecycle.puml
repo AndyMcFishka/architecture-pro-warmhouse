@@ -1,0 +1,31 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: подключение и отзыв доступа
+LAYOUT_TOP_DOWN()
+skinparam nodesep 35
+skinparam ranksep 50
+Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
+Container(access, "Дома и доступ", "HTTP API", "Актуальное право автора команды")
+Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
+Container(device_bus, "RabbitMQ: vhost устройств", "MQTT / TLS", "Тот же брокер; ACL topics, exchange и очередей")
+Container(devices, "Новые устройства", "HTTPS", "Bootstrap для всех; polling и push для HTTP-профиля")
+Container_Boundary(service, "Взаимодействие с устройствами — подключение") {
+  Component(provision, "Подключение и отзыв", "Consumer / HTTPS bootstrap", "Отзыв прежних credentials; выдача новых credentials и ACL")
+  Component(relay, "Публикатор outbox", "Фоновый обработчик", "ProvisioningCompleted после сохранения результата")
+}
+ContainerDb(db, "БД connectivity", "PostgreSQL", "Своя БД и роль")
+Rel(broker, provision, "ProvisioningRequested / DeviceBindingChanged / AccessChanged")
+Rel(provision, access, "Перепроверяет права при AccessChanged")
+Rel(provision, registry, "Проверяет актуальную привязку перед применением")
+Rel(provision, db, "Dedup + provisioning / отмена заданий + outbox")
+Rel(provision, device_bus, "Управляет credentials, ACL и сессиями", "Внутренний management API")
+Rel(devices, provision, "Одноразовый bootstrap после pairing", "HTTPS")
+Rel(relay, db, "Читает / отмечает outbox")
+Rel(relay, broker, "ProvisioningCompleted / DeliveryClosed", "AMQP")
+footer
+Это второе представление того же сервиса и его БД, не дополнительный сервис.
+Повтор безопасен; прежние credentials отзываются до выдачи новых; ACK после commit.
+end footer
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml

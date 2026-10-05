@@ -1,0 +1,70 @@
+@startuml
+title Тёплый дом — Code: pull legacy-датчика и запуск сценария
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 260
+autonumber
+participant "PollScheduler / ingest\nтелеметрии" as telemetry
+database "БД telemetry" as db
+queue "RabbitMQ\nвнутренний vhost" as broker
+participant "Dispatcher / legacy client\nвзаимодействия" as transport
+participant "Legacy API /\nTemperatureService" as monolith
+participant "Старый датчик" as sensor
+participant "RuleEvaluator / runner\nавтоматизации" as automation
+participant "CommandHandler\nсервиса отопления" as control
+
+telemetry -> telemetry: Наступил срок опроса; профиль устройства\nполучен из сервиса учёта
+telemetry -> db: Транзакция: уникальный слот опроса +\noutbox PollRequested(requestId, deviceId, houseId, bindingVersion)
+telemetry -> broker: Outbox relay публикует PollRequested
+broker --> telemetry: mandatory + confirm без basic.return;\nзатем outbox отмечается отправленным
+broker -> transport: PollRequested
+transport -> transport: Сохранить inbox + задание\nв БД connectivity одной транзакцией
+transport -> broker: ACK после commit
+transport -> transport: Проверить ACTIVE и bindingVersion;\nвыбрать legacy-маршрут по профилю
+transport -> monolith: readMeasurement(requestId, deviceId, bindingVersion)\nс сервисной аутентификацией
+monolith -> sensor: Запрос измерения по старому протоколу
+alt Датчик ответил
+  sensor --> monolith: Значение, единица, время измерения (если есть)
+  monolith --> transport: Нормализованный ответ
+  transport -> transport: Если времени датчика нет — время получения\nс признаком источника времени; сохранить ответ + outbox
+  transport -> broker: Outbox: MeasurementReceived(measurementId, deviceId, houseId, bindingVersion, time)
+  broker -> telemetry: MeasurementReceived
+  telemetry -> telemetry: Проверить актуальную привязку в реестре
+  break Привязка неактуальна
+    telemetry -> db: Записать пропуск
+    telemetry -> broker: ACK без нового измерения и события
+  end
+  telemetry -> db: Транзакция: dedup + история + latest\nпо времени измерения + outbox MeasurementRecorded
+  db --> telemetry: COMMIT
+  telemetry -> broker: ACK
+  telemetry -> broker: Outbox: MeasurementRecorded
+  broker -> automation: MeasurementRecorded
+  automation -> automation: Проверить bindingVersion, свежесть, порядок и условие;\nтранзакция в БД automation: eventId + уникальный запуск
+  automation -> broker: ACK после сохранения запуска / пропуска
+  opt Условие выполнено и правило включено
+    automation -> automation: Runner читает запуск; проверяет\nвсе привязки сценария и права владельца
+    break Правило отключено / привязка или права потеряны
+      automation -> automation: Отключить правило; отменить ожидающие запуски
+    end
+    automation -> control: submit(action, ownerContext, bindingVersion, runId как ключ повтора)
+    control -> control: Проверить сервисную идентичность,\nправа владельца, ACTIVE, bindingVersion и допустимость команды
+    control --> automation: command_id или отказ
+    automation -> automation: Сохранить результат вызова;\nпри потере ответа повторить с тем же ключом
+  end
+else Таймаут / ошибка
+  monolith --> transport: Ошибка чтения
+  transport -> transport: Ограниченные повторы чтения;\nпосле исчерпания — outbox PollFailed
+  transport -> broker: PollFailed(requestId, deviceId)
+  broker -> telemetry: PollFailed
+  telemetry -> db: Зафиксировать ошибку;\nне обновлять последнее успешное измерение
+  telemetry -> broker: ACK после commit
+end
+note over telemetry,automation
+  Опрос работает без открытого веб-интерфейса.
+  Старое показание не выдаётся за новое событие измерения.
+  Автоматизация получает события только после сохранения телеметрии.
+  Проверка актуальности выполняется и перед опросом, и перед сохранением ответа.
+  Неактуальное сообщение: причина пропуска + ACK; недоступная проверка: отложенная обработка.
+end note
+footer Все outbox-публикации: mandatory + confirm без basic.return; eventId, requestId и runId сохраняются при повторе.
+@enduml

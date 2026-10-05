@@ -1,0 +1,42 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: Учёт устройств
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 50
+
+Container(client, "Веб-клиент / сервисы", "HTTPS / HTTP", "JWT / сервисная идентичность")
+Container(monolith, "Монолит / legacy-адаптер", "Go / Gin", "Получает устройства из сервиса регистрации")
+Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
+Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
+Container(broker, "RabbitMQ", "AMQP", "ProvisioningRequested / Completed; DeviceBindingChanged")
+Container_Boundary(service, "Учёт устройств") {
+  Component(api, "API устройств", "HTTP", "Регистрация, изменение, удаление, профиль подключения")
+  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
+  Component(manager, "Регистрация и профиль", "Модуль", "Тип, уникальность и pairing; привязка к дому")
+  Component(lifecycle, "Жизненный цикл привязки", "Consumer / outbox relay", "PENDING → ACTIVE; отзыв и bindingVersion")
+  Component(repo, "Хранилище устройств", "SQL", "Идентификатор, дом, bindingVersion, статус, commandOwner, возможности и профиль связи")
+}
+ContainerDb(db, "БД devices", "PostgreSQL", "Своя БД и роль")
+
+Rel(monolith, api, "Карточки и профили", "HTTP / сервисная аутентификация")
+Rel(client, api, "Управляет устройствами / читает профиль")
+Rel(api, auth, "Проверяет идентичность")
+Rel(auth, idp, "Получает JWKS")
+Rel(auth, access, "Проверяет права на целевой дом")
+Rel(api, manager, "Выполняет разрешённую операцию")
+Rel(manager, repo, "Работает с реестром")
+Rel(repo, db, "Привязка + outbox в одной транзакции")
+Rel(lifecycle, db, "Состояние + outbox, транзакция")
+Rel(lifecycle, broker, "ProvisioningRequested / DeviceBindingChanged")
+Rel(broker, lifecycle, "ProvisioningCompleted")
+footer
+Право на дом и подтверждение владения устройством проверяются до привязки.
+Pairing проверяет одноразовое доказательство владения; серийного номера недостаточно.
+Профиль типа: действия, схемы параметров, измерения/единицы; новый тип требует разработки интеграции.
+Технические credentials и MQTT ACL принадлежат сервису взаимодействия, не реестру.
+Удаление или перенос сначала деактивирует привязку и увеличивает bindingVersion.
+end footer
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml

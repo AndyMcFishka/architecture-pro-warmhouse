@@ -1,0 +1,41 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: Отопление
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 50
+
+Container(client, "Клиент / автоматизация", "HTTPS / HTTP", "Пользователь или проверенный контекст владельца сценария")
+Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
+Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
+Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
+Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
+Container_Boundary(service, "Отопление") {
+  Component(api, "API команд и статусов", "HTTP", "Команда, Idempotency-Key; возвращает command_id")
+  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
+  Component(commands, "Обработчик команд", "Модуль", "Правила отопления; Command + sequence + outbox")
+  Component(results, "Обработчик результатов", "AMQP consumer", "Dedup, resultVersion; CommandResult / DeliveryClosed")
+  Component(relay, "Публикатор outbox", "Фоновый обработчик", "CommandRequested; mandatory + confirm без return")
+}
+ContainerDb(db, "БД heating", "PostgreSQL", "Своя БД и роль")
+
+Rel(client, api, "Создаёт команду / читает статус")
+Rel(api, auth, "Проверяет идентичность")
+Rel(auth, idp, "Получает JWKS")
+Rel(auth, registry, "Определяет устройство и дом")
+Rel(auth, access, "Проверяет актуальные права")
+Rel(api, commands, "После проверки доступа")
+Rel(commands, db, "Command + sequence + outbox")
+Rel(relay, db, "Читает / отмечает outbox")
+Rel(relay, broker, "Публикует команды")
+Rel(broker, results, "CommandResult / DeliveryClosed")
+Rel(results, registry, "Актуальность CommandResult")
+Rel(results, db, "Результат + processed event в транзакции")
+footer
+Показан сервис отопления; освещение, ворота и видеонаблюдение — отдельные сервисы с собственными БД.
+У каждого управляемого устройства один владелец команд; доставка — в сервисе взаимодействия.
+Повторный ключ с другим содержимым отклоняется. ACK результата — после commit.
+end footer
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml

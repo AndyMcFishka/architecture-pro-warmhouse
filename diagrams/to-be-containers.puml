@@ -1,0 +1,90 @@
+@startuml
+!include <C4/C4_Container>
+
+title Тёплый дом — To-Be: контейнеры — команды и измерения
+LAYOUT_TOP_DOWN()
+skinparam nodesep 35
+skinparam ranksep 55
+
+Person(user, "Пользователь", "Просматривает измерения и управляет своим домом")
+System_Ext(legacy, "Старое оборудование", "Датчики и контроллеры отопления в частной сети")
+System_Ext(modern, "Новые устройства", "Исходящие MQTT-соединения или HTTPS polling команд; push-телеметрия")
+
+System_Boundary(platform, "Тёплый дом — целевая архитектура") {
+  Container(web, "Веб-клиент", "Веб-приложение", "Дома, устройства, сценарии и видео")
+  Container(access, "Дома и доступ", "HTTP API", "Дома, участники и права")
+  Container(registry, "Учёт устройств", "HTTP API", "Привязки, возможности и профиль связи")
+  Container(identity, "Провайдер идентификации", "Keycloak / OpenID Connect", "Вход и пользовательские токены")
+  Container(automation, "Автоматизация", "HTTP API / AMQP", "Правила, расписания и запуск действий")
+  Container(telemetry, "Телеметрия", "HTTP API / AMQP", "Показания и планировщик опроса")
+  Container(monolith, "Монолит / legacy-адаптер", "Go / Gin", "Legacy push / polling-фасад")
+  Container(transport, "Взаимодействие с устройствами", "HTTP / AMQP / MQTT", "Доставка, протоколы и подтверждения")
+  Container(heating, "Отопление", "HTTP API / AMQP", "Команды отоплению")
+  Container(lighting, "Освещение", "HTTP API / AMQP", "Команды освещению")
+  Container(gates, "Ворота", "HTTP API / AMQP", "Команды воротам")
+  Container(video, "Видеонаблюдение", "HTTP API / AMQP", "Команды камерам и видеодоступ")
+  ContainerQueue(broker, "Брокер сообщений", "RabbitMQ + MQTT plugin", "Внутренний и MQTT vhost")
+}
+
+Rel_(user, web, "Работает с домом", "", "-[norank]->")
+Rel_(web, identity, "Входит и получает токены", "OIDC / HTTPS", "-[norank]->")
+Rel_(telemetry, broker, "Запросы опроса, измерения", "AMQP", "-[norank]->")
+Rel_(transport, broker, "Команды / события; мост vhost", "AMQP", "-[norank]->")
+Rel_(modern, broker, "Телеметрия, команды, результаты", "MQTT / TLS", "-[norank]->")
+Rel_(modern, transport, "Polling / показания / результаты", "HTTPS, идентификация устройства", "-[norank]->")
+
+
+Rel_(web, heating, "Команды / статусы", "HTTPS", "-[norank]->")
+Rel_(web, lighting, "Команды / статусы", "HTTPS", "-[norank]->")
+Rel_(web, gates, "Команды / статусы", "HTTPS", "-[norank]->")
+Rel_(heating, broker, "Команды / результаты", "AMQP", "-[norank]->")
+Rel_(lighting, broker, "Команды / результаты", "AMQP", "-[norank]->")
+Rel_(gates, broker, "Команды / результаты", "AMQP", "-[norank]->")
+Rel_(web, video, "Команды, статусы, ссылка на поток", "HTTPS / JWT", "-[norank]->")
+
+footer
+  Пользовательские API: JWT; внутренние вызовы: сервисная аутентификация.
+  Проверки доступа и БД показаны в отдельных представлениях.
+  Видео не передаётся через RabbitMQ.
+end footer
+
+
+Rel_(transport, monolith, "Опрос и команды legacy-устройствам", "HTTP / сервисная аутентификация", "-[norank]->")
+Rel_(monolith, legacy, "Опрос / push-команды", "Intranet / legacy-протокол", "-[norank]->")
+
+Rel_(web, registry, "Подключает и настраивает устройства", "HTTPS / JWT", "-[norank]->")
+Rel_(web, access, "Управляет домами и участниками", "HTTPS / JWT", "-[norank]->")
+Rel_(web, telemetry, "Читает измерения", "HTTPS / JWT", "-[norank]->")
+Rel_(web, automation, "Настраивает сценарии", "HTTPS / JWT", "-[norank]->")
+Rel_(automation, broker, "Измерения / изменения доступа", "AMQP", "-[norank]->")
+Rel_(automation, heating, "Запускает действие", "HTTP", "-[norank]->")
+Rel_(automation, lighting, "Запускает действие", "HTTP", "-[norank]->")
+Rel_(automation, gates, "Запускает действие", "HTTP", "-[norank]->")
+
+
+Rel_(registry, broker, "Привязки / provisioning", "AMQP", "-[norank]->")
+Rel_(access, broker, "Изменение прав", "AMQP / outbox", "-[norank]->")
+Rel_(web, modern, "Видеопоток напрямую", "Защищённый медиапротокол", "-[norank]->")
+Rel_(legacy, monolith, "Polling своего статуса", "Legacy / pull; идентификация устройства", "-[norank]->")
+Rel_(monolith, transport, "Pending-команда", "Внутренний HTTP / сервисная аутентификация", "-[norank]->")
+Rel_(video, modern, "Временная ссылка", "HTTPS / серверные credentials", "-[norank]->")
+Rel_(video, broker, "Команды / результаты", "AMQP", "-[norank]->")
+Rel_(automation, video, "Запускает действие", "HTTP", "-[norank]->")
+' Layout only: peers in a single row, no new dependencies.
+Lay_D(user, web)
+Lay_R(web, identity)
+Lay_D(web, registry)
+Lay_R(access, registry)
+Lay_R(registry, automation)
+Lay_R(automation, telemetry)
+Lay_D(automation, heating)
+Lay_R(heating, lighting)
+Lay_R(lighting, gates)
+Lay_R(gates, video)
+Lay_D(heating, broker)
+Lay_D(broker, transport)
+Lay_D(transport, monolith)
+Lay_R(monolith, modern)
+Lay_D(monolith, legacy)
+SHOW_LEGEND()
+@enduml

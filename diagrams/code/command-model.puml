@@ -1,0 +1,103 @@
+@startuml
+title Тёплый дом — Code: модель команды и доставки
+skinparam classAttributeIconSize 0
+hide empty members
+top to bottom direction
+skinparam nodesep 35
+skinparam ranksep 40
+
+package "Сервис отопления (аналогично: свет / ворота / камеры)" as domain {
+  class CommandHandler {
+    +submit(actor, deviceId, action, key): Command
+    +applyResult(eventId, commandId, result)
+  }
+  class Command {
+    +id: UUID
+    +deviceId: UUID
+    +houseId: UUID
+    +bindingVersion: Integer
+    +sequence: Integer
+    +commandOwner: String
+    +actorId: String
+    +action: String
+    +parameters: JSON
+    +idempotencyKey: String
+    +requestHash: String
+    +expiresAt: Instant
+    +lastResultVersion: Integer
+    +status: CommandStatus
+  }
+  enum CommandStatus {
+    ACCEPTED
+    SUCCEEDED
+    FAILED
+    CANCELLED
+    EXPIRED
+    UNKNOWN
+  }
+  class OutboxMessage {
+    +eventId: UUID
+    +aggregateId: UUID
+    +payload: JSON
+    +publishedAt: Instant?
+  }
+}
+package "Сервис взаимодействия с устройствами" as transport {
+  class DeliveryWorker {
+    +dispatch(commandId)
+    +acceptResult(deviceIdentity, result)
+    +expirePending(now)
+    +invalidateBinding(deviceId, bindingVersion)
+  }
+  class Delivery {
+    +commandId: UUID
+    +deviceId: UUID
+    +houseId: UUID
+    +bindingVersion: Integer
+    +sequence: Integer
+    +commandOwner: String
+    +actorId: String
+    +action: String
+    +parameters: JSON
+    +resultVersion: Integer
+    +route: MQTT | HTTP_PULL | LEGACY
+    +exchangeMode: PUSH | PULL
+    +expiresAt: Instant
+    +attempts: Integer
+    +nextAttemptAt: Instant?
+    +status: DeliveryStatus
+  }
+  enum DeliveryStatus {
+    PENDING
+    AWAITING_RESULT
+    CONFIRMED
+    REJECTED
+    CANCELLED
+    EXPIRED
+    UNKNOWN
+  }
+  interface DeviceAdapter {
+    +dispatch(delivery): DispatchResult
+  }
+  class MqttAdapter
+  class HttpPullAdapter
+  class LegacyAdapter
+}
+CommandHandler --> Command : создаёт / изменяет
+Command --> CommandStatus
+CommandHandler --> OutboxMessage : одна транзакция с Command
+OutboxMessage ..> Delivery : CommandRequested через RabbitMQ
+DeliveryWorker --> Delivery
+Delivery --> DeliveryStatus
+DeliveryWorker --> DeviceAdapter : выбирает по профилю
+DeviceAdapter <|.. MqttAdapter
+DeviceAdapter <|.. HttpPullAdapter
+DeviceAdapter <|.. LegacyAdapter
+
+domain -[hidden]right-> transport
+footer
+Command + sequence + outbox сохраняются одной транзакцией. Отправка не равна выполнению.
+Одна активная команда на устройство; UNKNOWN блокирует следующие. Сроки проверяются фоном.
+Полный контракт порядка, отмены, повторов и сроков — в README, задание 2.
+end footer
+@enduml

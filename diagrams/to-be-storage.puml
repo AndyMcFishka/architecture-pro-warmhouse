@@ -1,0 +1,65 @@
+@startuml
+!include <C4/C4_Container>
+title Тёплый дом — To-Be: владение данными
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 40
+System_Boundary(platform, "Тёплый дом") {
+  Container(heating, "Отопление", "Сервис", "Владеет БД heating")
+  ContainerDb(db_heating, "heating", "PostgreSQL", "Отдельная база и роль")
+  Container(lighting, "Освещение", "Сервис", "Владеет БД lighting")
+  ContainerDb(db_lighting, "lighting", "PostgreSQL", "Отдельная база и роль")
+  Container(gates, "Ворота", "Сервис", "Владеет БД gates")
+  ContainerDb(db_gates, "gates", "PostgreSQL", "Отдельная база и роль")
+  Container(video, "Видеонаблюдение", "Сервис", "Владеет БД video")
+  ContainerDb(db_video, "video", "PostgreSQL", "Отдельная база и роль")
+  Container(registry, "Учёт устройств", "Сервис", "Владеет БД devices")
+  ContainerDb(db_registry, "devices", "PostgreSQL", "Отдельная база и роль")
+  Container(telemetry, "Телеметрия", "Сервис", "Владеет БД telemetry")
+  ContainerDb(db_telemetry, "telemetry", "PostgreSQL", "Отдельная база и роль")
+  Container(transport, "Взаимодействие с устройствами", "Сервис", "Владеет БД connectivity")
+  ContainerDb(db_transport, "connectivity", "PostgreSQL", "Отдельная база и роль")
+  Container(automation, "Автоматизация", "Сервис", "Владеет БД automation")
+  ContainerDb(db_automation, "automation", "PostgreSQL", "Отдельная база и роль")
+  Container(access, "Дома и доступ", "Сервис", "Владеет БД access")
+  ContainerDb(db_access, "access", "PostgreSQL", "Отдельная база и роль")
+  Container(identity, "Keycloak", "Сервис", "Владеет БД keycloak")
+  ContainerDb(db_identity, "keycloak", "PostgreSQL", "Отдельная база и роль")
+  Container(monolith, "Legacy-адаптер", "Сервис", "Владеет БД legacy")
+  ContainerDb(db_monolith, "legacy", "PostgreSQL", "Отдельная база и роль")
+}
+Rel_D(heating, db_heating, "Читает / пишет", "SQL")
+Rel_D(lighting, db_lighting, "Читает / пишет", "SQL")
+Rel_D(gates, db_gates, "Читает / пишет", "SQL")
+Rel_D(video, db_video, "Читает / пишет", "SQL")
+Lay_R(heating, lighting)
+Lay_R(db_heating, db_lighting)
+Lay_R(lighting, gates)
+Lay_R(db_lighting, db_gates)
+Lay_R(gates, video)
+Lay_R(db_gates, db_video)
+Rel_D(registry, db_registry, "Читает / пишет", "SQL")
+Rel_D(telemetry, db_telemetry, "Читает / пишет", "SQL")
+Rel_D(transport, db_transport, "Читает / пишет", "SQL")
+Rel_D(automation, db_automation, "Читает / пишет", "SQL")
+Lay_R(registry, telemetry)
+Lay_R(db_registry, db_telemetry)
+Lay_R(telemetry, transport)
+Lay_R(db_telemetry, db_transport)
+Lay_R(transport, automation)
+Lay_R(db_transport, db_automation)
+Rel_D(access, db_access, "Читает / пишет", "SQL")
+Rel_D(identity, db_identity, "Читает / пишет", "SQL")
+Rel_D(monolith, db_monolith, "Читает / пишет", "SQL")
+Lay_R(access, identity)
+Lay_R(db_access, db_identity)
+Lay_R(identity, monolith)
+Lay_R(db_identity, db_monolith)
+Lay_D(db_heating, registry)
+Lay_D(db_registry, access)
+footer
+Базы размещены в существующем экземпляре PostgreSQL; это логическое владение, не отдельные серверы.
+Чужие таблицы недоступны. Межсервисные обращения — только через API или события.
+end footer
+SHOW_LEGEND()
+@enduml

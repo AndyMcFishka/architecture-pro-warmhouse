@@ -1,0 +1,30 @@
+@startuml
+!include <C4/C4_Component>
+title Тёплый дом — Components: Дома и доступ
+LAYOUT_TOP_DOWN()
+skinparam nodesep 30
+skinparam ranksep 50
+
+Container(client, "Веб-клиент / сервисы", "HTTPS / HTTP", "JWT / сервисная идентичность")
+Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
+Container(broker, "RabbitMQ", "AMQP", "AccessChanged; внутренний vhost")
+Container_Boundary(service, "Дома и доступ") {
+  Component(api, "API домов и прав", "HTTP", "Создание дома, участники, запрос разрешения")
+  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
+  Component(policy, "Правила доступа", "Модуль", "Владелец, участник, действие; разрешённые изменения")
+  Component(relay, "Публикатор outbox", "Фоновый обработчик", "AccessChanged; mandatory + confirm без basic.return")
+  Component(repo, "Хранилище домов и участников", "SQL", "Связь с пользователем по subject Keycloak; пароли не хранятся")
+}
+ContainerDb(db, "БД access", "PostgreSQL", "Своя БД и роль")
+
+Rel(client, api, "Запрашивает операцию")
+Rel(api, auth, "Аутентифицирует запрос")
+Rel(auth, idp, "Получает JWKS")
+Rel(api, policy, "После проверки идентичности")
+Rel(policy, repo, "Проверяет и изменяет членство")
+Rel(repo, db, "Права + версия + outbox в одной транзакции")
+Rel(relay, db, "Читает / отмечает outbox")
+Rel(relay, broker, "AccessChanged: дом, пользователь, версия прав")
+skinparam footerFontSize 11
+SHOW_LEGEND()
+@enduml
