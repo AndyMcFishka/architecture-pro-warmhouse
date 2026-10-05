@@ -1,0 +1,42 @@
+@startuml
+title Warmhouse — Code: Telemetry — измерения и опрос
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class Measurement {
+  deviceId: ID
+  houseId: ID
+  metric: String
+  value: Decimal
+  unit: String
+  measuredAt: DateTime
+  + isFresh(now, maxAge): Boolean
+}
+class MeasurementAPI {
+  + latest(deviceId): Measurement
+  + history(deviceId, period): List<Measurement>
+}
+class MeasurementConsumer {
+  + onMeasurementReceived(event)
+  + saveMeasurement(measurement)
+  + publishMeasurementRecorded(measurement)
+}
+class PollScheduler {
+  + findDueDevices(now): List<PollSchedule>
+  + requestPoll(deviceId)
+}
+class PollSchedule {
+  deviceId: ID
+  interval: Duration
+  nextPollAt: DateTime
+  + scheduleNextPoll(now)
+}
+MeasurementAPI ..> Measurement : возвращает
+MeasurementConsumer ..> Measurement : создаёт и сохраняет
+PollScheduler "1" --> "0..*" PollSchedule : использует
+note bottom of PollScheduler
+  Запрашивает опрос через PollRequested.
+  Сам с оборудованием не взаимодействует.
+end note
+@enduml

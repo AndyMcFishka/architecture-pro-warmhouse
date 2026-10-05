@@ -1,0 +1,30 @@
+@startuml
+title Warmhouse — Code: Device Registry — подключение устройства к дому
+hide footbox
+autonumber
+actor "Пользователь" as user
+box "Device Registry" #EAF2F8
+participant "DeviceAPI" as api
+participant "RegistrationManager" as manager
+participant "BindingLifecycle" as lifecycle
+end box
+database "Devices DB" as db
+participant "RabbitMQ" as bus
+participant "Device Connectivity" as connectivity
+
+user -> api: добавить устройство в выбранный дом
+api -> manager: зарегистрировать устройство
+manager -> manager: определить тип и подтвердить pairing
+manager -> db: сохранить устройство и привязку в статусе PENDING
+manager ->> bus: ProvisioningRequested — подготовить подключение
+api --> user: устройство подключается
+bus ->> connectivity: подготовить подключение устройства
+connectivity -> connectivity: настроить соединение с устройством
+connectivity ->> bus: ProvisioningCompleted — подключение подготовлено
+bus ->> lifecycle: завершить регистрацию
+lifecycle -> db: перевести устройство в ACTIVE
+user -> api: получить список устройств дома
+api -> db: прочитать устройства и их статусы
+db --> api: список устройств
+api --> user: устройство готово к работе
+@enduml

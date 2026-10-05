@@ -1,0 +1,51 @@
+@startuml
+title Warmhouse — Code: Device Connectivity — доставка и адаптеры
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class DeliveryDispatcher {
+  + dispatchCommand(command)
+  + requestMeasurement(deviceId)
+}
+class DeliveryJob {
+  commandId: ID
+  deviceId: ID
+  payload: Map
+  status: String
+}
+class MQTTAdapter {
+  + sendCommand(job)
+  + onDeviceMessage(message)
+}
+class DeviceHTTPAdapter {
+  + prepareCommand(job)
+  + pollCommand(deviceId): DeliveryJob
+  + receiveData(deviceId, data)
+}
+class LegacyAPIClient {
+  + sendCommand(job)
+  + readMeasurement(deviceId)
+}
+class IngestionNormalizer {
+  + normalizeMeasurement(deviceId, data)
+  + publishMeasurementReceived(measurement)
+  + publishCommandResult(commandId, result)
+}
+DeliveryDispatcher ..> DeliveryJob : создаёт задачу доставки
+DeliveryDispatcher --> MQTTAdapter : MQTT
+DeliveryDispatcher --> DeviceHTTPAdapter : HTTPS polling
+DeliveryDispatcher --> LegacyAPIClient : legacy
+MQTTAdapter --> IngestionNormalizer : данные и результаты
+DeviceHTTPAdapter --> IngestionNormalizer : данные и результаты
+LegacyAPIClient --> IngestionNormalizer : данные и результаты
+DeviceHTTPAdapter ..> DeliveryJob : выдаёт устройству
+note bottom of DeliveryDispatcher
+  Выбирает адаптер по профилю из Device Registry.
+  LegacyAPIClient обращается к API монолита.
+end note
+note bottom of DeliveryJob
+  Задача доставки ссылается на команду доменного сервиса.
+  Бизнес-команда остаётся в создавшем её контексте.
+end note
+@enduml

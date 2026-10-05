@@ -1,0 +1,28 @@
+@startuml
+title Warmhouse — Code: Telemetry — получение и просмотр показаний
+hide footbox
+autonumber
+actor "Пользователь" as user
+box "Telemetry" #EAF2F8
+participant "MeasurementAPI" as api
+participant "PollScheduler" as scheduler
+participant "MeasurementConsumer" as consumer
+end box
+database "Telemetry DB" as db
+participant "RabbitMQ" as bus
+
+== Планирование опроса ==
+scheduler -> scheduler: определить устройства, которые пора опросить
+scheduler ->> bus: PollRequested — запросить показания
+
+== Сохранение показаний ==
+bus ->> consumer: MeasurementReceived — получено измерение
+consumer -> db: сохранить значение и время измерения
+consumer ->> bus: MeasurementRecorded — показание сохранено
+
+== Просмотр показаний ==
+user -> api: запросить последнее показание или историю
+api -> db: найти измерения устройства
+db --> api: значения и время измерений
+api --> user: показать показания и их актуальность
+@enduml

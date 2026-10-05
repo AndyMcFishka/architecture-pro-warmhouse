@@ -1,0 +1,33 @@
+@startuml
+title Warmhouse — Code: Home Access — дом, участники и права
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class Home {
+  id: ID
+  name: String
+}
+class Membership {
+  userId: ID
+  role: OWNER / MEMBER
+  allowedActions: Set<String>
+}
+class HomeAccessAPI {
+  + createHome(userId, name): Home
+  + setMembership(houseId, userId, role, actions)
+  + checkPermission(userId, houseId, action): Boolean
+}
+class AccessPolicy {
+  + allows(membership, action): Boolean
+}
+Home "1" *-- "1..*" Membership : участники
+HomeAccessAPI ..> Home : создаёт
+HomeAccessAPI ..> Membership : читает и изменяет
+HomeAccessAPI --> AccessPolicy : проверяет право
+AccessPolicy ..> Membership : использует роль и права
+note bottom of Membership
+  В каждом доме один владелец.
+  userId — идентификатор пользователя Keycloak.
+end note
+@enduml

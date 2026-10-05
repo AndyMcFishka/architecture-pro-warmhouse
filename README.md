@@ -208,30 +208,19 @@
 
 **Диаграмма кода (Code)**
 
-Критичные части детализированы обычными UML-диаграммами классов и последовательностей в PlantUML, как допускает задание. Имена классов и методов проектные, без привязки к ещё не выбранным языкам.
+Основные процессы пяти контекстов показаны UML-диаграммами последовательностей, а их структура — диаграммами классов в PlantUML. Это проектная детализация To-Be: участники внутри сервисов соответствуют модулям диаграмм Components, новые сервисы ещё не реализованы. Схемы показывают основной ход процессов без технических подробностей авторизации, дедупликации и доставки сообщений.
 
-Модель разделяет бизнес-команду и транспортную доставку. Последовательности показывают транзакционные границы, outbox/inbox, подтверждения, повторы и обработку неизвестного результата. `MeasurementReceived` — нормализованное входное измерение, `MeasurementRecorded` — событие после сохранения телеметрией; автоматизация подписывается на второе.
+| Контекст | Основные процессы | Последовательность | Классы |
+| --- | --- | --- | --- |
+| Телеметрия | Планирование опроса, сохранение и просмотр показаний | [telemetry.puml](diagrams/code/telemetry.puml) | [telemetry-classes.puml](diagrams/code/telemetry-classes.puml) |
+| Регистрация устройств | Добавление устройства в дом, подготовка подключения и активация | [devices.puml](diagrams/code/devices.puml) | [devices-classes.puml](diagrams/code/devices-classes.puml) |
+| Дома и доступ | Определение права пользователя на действие в доме | [access.puml](diagrams/code/access.puml) | [access-classes.puml](diagrams/code/access-classes.puml) |
+| Видеоконтроль | Получение видеопотока и управление камерой | [video.puml](diagrams/code/video.puml) | [video-classes.puml](diagrams/code/video-classes.puml) |
+| Device Connectivity | Выбор способа доставки команды, получение результата и показаний | [connectivity.puml](diagrams/code/connectivity.puml) | [connectivity-classes.puml](diagrams/code/connectivity-classes.puml) |
 
-<details>
-<summary>Модель команды и доставки</summary>
+Диаграммы классов показывают только основные сущности, их поля, операции и связи. Методы проектные и не привязаны к языку реализации; ссылки на сущности других контекстов представлены идентификаторами. Инфраструктурные механизмы опущены.
 
-[Исходник PlantUML](diagrams/code/command-model.puml)
-
-</details>
-
-<details>
-<summary>Надёжная доставка команды через HTTP polling</summary>
-
-[Исходник PlantUML](diagrams/code/command-delivery.puml)
-
-</details>
-
-<details>
-<summary>Опрос legacy-датчика и запуск автоматизации</summary>
-
-[Исходник PlantUML](diagrams/code/legacy-poll-automation.puml)
-
-</details>
+Проверка синтаксиса из корня репозитория: `plantuml -checkonly diagrams/code/*.puml`.
 
 # Задание 3. Разработка ER-диаграммы
 

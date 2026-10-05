@@ -1,0 +1,50 @@
+@startuml
+title Warmhouse — Code: Video Control — видеопоток и команды камеры
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class CameraAPI {
+  + getStreamURL(cameraId): StreamURL
+  + command(cameraId, action, params): CameraCommand
+  + getCommand(commandId): CameraCommand
+}
+class StreamURLIssuer {
+  + issueURL(cameraId): StreamURL
+}
+class StreamProfile {
+  cameraId: ID
+  apiAddress: URL
+  format: String
+}
+class StreamURL {
+  url: URL
+  expiresAt: DateTime
+}
+class CommandHandler {
+  + createCommand(cameraId, action, params): CameraCommand
+}
+class ResultConsumer {
+  + onCommandResult(commandId, result)
+}
+class CameraCommand {
+  id: ID
+  cameraId: ID
+  action: String
+  parameters: Map
+  status: String
+  result: String
+  + applyResult(result)
+}
+CameraAPI --> StreamURLIssuer : запрос потока
+CameraAPI --> CommandHandler : управление камерой
+CameraAPI ..> CameraCommand : читает статус
+StreamURLIssuer ..> StreamProfile : параметры камеры
+StreamURLIssuer ..> StreamURL : получает у камеры
+CommandHandler ..> CameraCommand : создаёт
+ResultConsumer ..> CameraCommand : обновляет результат
+note bottom of CameraCommand
+  cameraId — ID устройства в Device Registry.
+  Команду доставляет Device Connectivity.
+end note
+@enduml

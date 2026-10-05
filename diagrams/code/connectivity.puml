@@ -1,0 +1,56 @@
+@startuml
+title Warmhouse — Code: Device Connectivity — обмен с устройствами
+hide footbox
+autonumber
+participant "RabbitMQ" as bus
+box "Device Connectivity" #EAF2F8
+participant "DeliveryDispatcher" as dispatcher
+participant "MQTT / HTTP Adapter" as adapter
+participant "LegacyAPIClient" as legacy
+participant "IngestionNormalizer" as ingest
+end box
+participant "Device Registry" as registry
+participant "Монолит / Legacy Adapter" as monolith
+participant "Устройство" as device
+
+== Доставка команды ==
+bus ->> dispatcher: CommandRequested
+dispatcher -> registry: получить профиль подключения устройства
+registry --> dispatcher: протокол и режим обмена
+alt MQTT
+  dispatcher -> adapter: передать команду
+  adapter ->> device: команда через MQTT vhost
+  device ->> adapter: результат через MQTT vhost
+  adapter -> ingest: результат выполнения
+else HTTPS polling
+  dispatcher -> adapter: подготовить команду к выдаче
+  device -> adapter: запросить ожидающую команду
+  adapter --> device: команда
+  device -> adapter: отправить результат
+  adapter -> ingest: результат выполнения
+else Legacy
+  dispatcher -> legacy: передать команду старому устройству
+  legacy -> monolith: вызвать API адаптера
+  monolith -> device: команда по legacy-протоколу
+  device --> monolith: результат выполнения
+  monolith --> legacy: результат выполнения
+  legacy -> ingest: результат выполнения
+end
+ingest ->> bus: CommandResult
+
+== Получение показаний ==
+alt Устройство само присылает данные
+  device -> adapter: показание
+  adapter -> ingest: полученные данные
+else Опрос legacy-датчика
+  bus ->> dispatcher: PollRequested
+  dispatcher -> legacy: запросить показание
+  legacy -> monolith: прочитать датчик
+  monolith -> device: запрос показания
+  device --> monolith: показание
+  monolith --> legacy: показание
+  legacy -> ingest: полученные данные
+end
+ingest -> ingest: привести данные к общему формату
+ingest ->> bus: MeasurementReceived
+@enduml

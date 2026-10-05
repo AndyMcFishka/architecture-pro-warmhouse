@@ -1,0 +1,19 @@
+@startuml
+title Warmhouse — Code: Home Access — право на действие в доме
+hide footbox
+autonumber
+participant "Сервис платформы" as service
+box "Home Access" #EAF2F8
+participant "HomeAccessAPI" as api
+participant "AccessPolicy" as policy
+end box
+database "Access DB" as db
+
+service -> api: может ли пользователь выполнить действие в доме?
+api -> policy: проверить право на действие
+policy -> db: получить роль и права пользователя в доме
+db --> policy: владелец / участник, разрешённые действия
+policy -> policy: сопоставить действие с правами
+policy --> api: разрешено / запрещено
+api --> service: решение о доступе
+@enduml

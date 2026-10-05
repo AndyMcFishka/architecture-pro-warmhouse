@@ -1,0 +1,40 @@
+@startuml
+title Warmhouse — Code: Video Control — просмотр и управление камерой
+hide footbox
+autonumber
+actor "Пользователь / клиент" as user
+box "Video Control" #EAF2F8
+participant "CameraAPI" as api
+participant "StreamURLIssuer" as links
+participant "CommandHandler / ResultConsumer" as commands
+end box
+database "Video DB" as db
+participant "Камера" as camera
+participant "RabbitMQ" as bus
+
+== Просмотр видео ==
+user -> api: открыть камеру
+api -> links: получить ссылку на поток
+links -> db: прочитать профиль видеопотока
+db --> links: параметры подключения камеры
+links -> camera: запросить временную ссылку
+camera --> links: ссылка на поток
+links --> api: ссылка на поток
+api --> user: ссылка на поток
+user -> camera: открыть поток
+camera --> user: видео и звук напрямую
+
+== Управление камерой ==
+user -> api: повернуть камеру / выбрать предустановку
+api -> commands: создать команду
+commands -> db: сохранить команду
+commands ->> bus: CommandRequested
+api --> user: команда принята
+ref over commands,bus: connectivity.puml — доставка команды и получение результата
+bus ->> commands: CommandResult
+commands -> db: сохранить результат выполнения
+user -> api: узнать результат команды
+api -> db: прочитать результат
+db --> api: результат выполнения
+api --> user: показать результат
+@enduml

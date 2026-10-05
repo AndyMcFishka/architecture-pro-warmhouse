@@ -1,0 +1,50 @@
+@startuml
+title Warmhouse — Code: Device Registry — устройство и его профиль
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class Device {
+  id: ID
+  houseId: ID
+  serialNumber: String
+  status: PENDING / ACTIVE / INACTIVE
+  + activate()
+  + deactivate()
+}
+class DeviceType {
+  id: ID
+  name: String
+  supportedActions: List<String>
+  supportedMeasurements: List<String>
+}
+class ConnectivityProfile {
+  protocol: MQTT / HTTPS / LEGACY
+  mode: PUSH / PULL
+  network: INTERNET / INTRANET
+}
+class DeviceAPI {
+  + register(houseId, typeId, pairingProof): Device
+  + listDevices(houseId): List<Device>
+}
+class RegistrationManager {
+  + register(houseId, typeId, pairingProof): Device
+  + confirmPairing(pairingProof)
+  + requestProvisioning(deviceId)
+}
+class BindingLifecycle {
+  + onProvisioningCompleted(deviceId)
+  + deactivateDevice(deviceId)
+}
+DeviceAPI --> RegistrationManager : регистрация
+DeviceAPI ..> Device : возвращает
+RegistrationManager ..> Device : создаёт
+RegistrationManager ..> DeviceType : определяет тип
+BindingLifecycle ..> Device : изменяет статус
+Device "0..*" --> "1" DeviceType : тип
+Device "1" *-- "1" ConnectivityProfile : профиль подключения
+note bottom of Device
+  houseId ссылается на дом в Home Access.
+  Здесь показана текущая привязка устройства.
+end note
+@enduml
