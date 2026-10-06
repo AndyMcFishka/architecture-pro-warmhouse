@@ -76,6 +76,8 @@
 
 [Освещение (PlantUML)](diagrams/components/lighting.puml)
 
+[Ворота (PlantUML)](diagrams/components/gates.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
