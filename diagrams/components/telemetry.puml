@@ -1,44 +1,38 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Телеметрия
+title Warmhouse — Components: Telemetry
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(client, "Веб-клиент / сервисы", "HTTPS / HTTP", "JWT / сервисная идентичность")
-Container(monolith, "Монолит / legacy-адаптер", "Go / Gin", "Читает температуру из сервиса телеметрии")
-Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
-Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
-Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
-Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
-Container_Boundary(service, "Телеметрия") {
-  Component(api, "API измерений", "HTTP", "Последнее значение и история; время измерения и актуальность")
-  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
-  Component(scheduler, "Планировщик pull-опроса", "Фоновый обработчик", "PollRequested по расписанию")
-  Component(ingest, "Обработчик измерений", "AMQP consumer", "Формат, dedup, bindingVersion; пропуск устаревших")
-  Component(relay, "Публикатор outbox", "Фоновый обработчик", "Запросы опроса и MeasurementRecorded после commit")
+Container(client, "Web Client / Services", "HTTPS / HTTP", "JWT / service identity")
+Container(monolith, "Monolith / Legacy Adapter", "Go / Gin", "Reads temperature from Telemetry")
+Container(idp, "Keycloak", "OIDC / JWKS", "JWT keys; JWKS cache")
+Container(access, "Home Access", "HTTP API", "Validates current home permissions")
+Container(registry, "Device Registry", "HTTP API", "Home, binding and device profile")
+Container(broker, "RabbitMQ", "AMQP", "Internal vhost; ACK / confirms")
+Container_Boundary(service, "Telemetry") {
+  Component(api, "Measurement API", "HTTP", "Latest value and history; measurement time and freshness")
+  Component(auth, "Access Validation", "Module", "JWT: issuer, audience, expiry; service identity")
+  Component(scheduler, "Poll Scheduler", "Background worker", "Scheduled PollRequested")
+  Component(ingest, "Measurement Consumer", "AMQP consumer", "Format, dedup, bindingVersion; skips stale messages")
+  Component(relay, "Outbox Relay", "Background worker", "Poll requests and MeasurementRecorded after commit")
 }
-ContainerDb(db, "БД telemetry", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Telemetry DB", "PostgreSQL", "Dedicated database and role")
 
-Rel(monolith, api, "Показание и время", "HTTP / сервисная аутентификация")
-Rel(client, api, "Читает показания")
-Rel(api, auth, "Проверяет идентичность")
-Rel(auth, idp, "Получает JWKS")
-Rel(auth, access, "Проверяет право чтения дома")
-Rel(api, db, "Читает разрешённые измерения")
-Rel(scheduler, registry, "Получает pull-устройства и интервалы")
-Rel(scheduler, db, "Слот опроса + outbox в транзакции")
-Rel(broker, ingest, "MeasurementReceived / ошибка опроса")
+Rel(monolith, api, "Reading and timestamp", "HTTP / service authentication")
+Rel(client, api, "Reads measurements")
+Rel(api, auth, "Verifies identity")
+Rel(auth, idp, "Fetches JWKS")
+Rel(auth, access, "Checks home read permission")
+Rel(auth, registry, "Current home / ACTIVE / bindingVersion")
+Rel(api, db, "Reads authorized measurements")
+Rel(scheduler, registry, "Fetches pull devices and intervals")
+Rel(scheduler, db, "Poll slot + outbox in one transaction")
+Rel(broker, ingest, "MeasurementReceived / PollFailed")
 Rel(ingest, registry, "ACTIVE / bindingVersion")
-Rel(ingest, db, "Измерение + dedup + outbox в транзакции")
-Rel(relay, db, "Читает / отмечает outbox")
+Rel(ingest, db, "Measurement + dedup + outbox in one transaction")
+Rel(relay, db, "Reads / marks outbox messages")
 Rel(relay, broker, "PollRequested / MeasurementRecorded")
-footer
-PollRequested и измерения содержат deviceId, houseId, bindingVersion.
-При чтении проверяется текущая привязка; история старого дома не раскрывается новому владельцу.
-Ошибка опроса не обновляет время успешного измерения.
-Уникальный слот опроса исключает двойное планирование; сообщение подтверждается после commit.
-end footer
-skinparam footerFontSize 11
 SHOW_LEGEND()
 @enduml

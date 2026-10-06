@@ -1,54 +1,44 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Автоматизация
+title Warmhouse — Components: Automation
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(client, "Веб-клиент / сервисы", "HTTPS / HTTP", "JWT / сервисная идентичность")
-Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
-Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
-Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
-Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
-Boundary(command_services, "Сервисы управления — четыре приложения") {
-  Container(heating, "Управление отоплением", "HTTP API", "Права, привязка и команды")
-  Container(lighting, "Освещение", "HTTP API", "Права, привязка и команды")
-  Container(gates, "Ворота", "HTTP API", "Права, привязка и команды")
-  Container(video, "Управление видеонаблюдением", "HTTP API", "Команды камерам; проверки прав и привязки")
+Container(client, "Web Client / Services", "HTTPS / HTTP", "JWT / service identity")
+Container(idp, "Keycloak", "OIDC / JWKS", "JWT keys; JWKS cache")
+Container(access, "Home Access", "HTTP API", "Validates current home permissions")
+Container(registry, "Device Registry", "HTTP API", "Home, binding and device profile")
+Container(broker, "RabbitMQ", "AMQP", "Internal vhost; ACK / confirms")
+Boundary(command_services, "Control Contexts — Four Services") {
+  Container(heating, "Heating Control", "HTTP API", "Permissions, bindings and commands")
+  Container(lighting, "Lighting Control", "HTTP API", "Permissions, bindings and commands")
+  Container(gates, "Gate Control", "HTTP API", "Permissions, bindings and commands")
+  Container(video, "Video Control", "HTTP API", "Camera commands; permission and binding checks")
 }
-Container_Boundary(service, "Автоматизация") {
-  Component(api, "API сценариев", "HTTP", "Создание, изменение, включение и отключение правил")
-  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
-  Component(rules, "Обработчик правил", "Модуль", "Условия, действия, владелец и bindingVersion")
-  Component(triggers, "События и расписания", "Consumer / таймер", "Свежесть, bindingVersion, условие; уникальный запуск")
-  Component(runner, "Исполнитель запусков", "Фоновый обработчик", "Повторная проверка правила, привязок и прав; вызов доменного API")
+Container_Boundary(service, "Automation") {
+  Component(api, "Automation Rule API", "HTTP", "Create, update, enable and disable rules")
+  Component(auth, "Access Validation", "Module", "JWT: issuer, audience, expiry; service identity")
+  Component(rules, "Rule Evaluator", "Module", "Conditions, actions, owner and bindingVersion")
+  Component(triggers, "Events and Schedules", "Consumer / timer", "Freshness and bindingVersion; trigger or disable on permission / binding revocation")
+  Component(runner, "Rule Runner", "Background worker", "Revalidates rule, bindings and permissions; calls domain API")
 }
-ContainerDb(db, "БД automation", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Automation DB", "PostgreSQL", "Dedicated database and role")
 
-Rel(client, api, "Настраивает сценарий", "")
-Rel(api, auth, "Проверяет JWT", "")
-Rel(auth, idp, "Получает JWKS", "")
-Rel(auth, access, "Проверяет права", "")
-Rel(api, rules, "После проверки доступа", "")
-Rel(rules, registry, "Проверяет устройства сценария", "")
-Rel(rules, db, "Хранит правила", "")
+Rel(client, api, "Configures an automation rule", "")
+Rel(api, auth, "Validates JWT", "")
+Rel(auth, idp, "Fetches JWKS", "")
+Rel(auth, access, "Checks permissions", "")
+Rel(api, rules, "After access validation", "")
+Rel(rules, registry, "Validates rule devices", "")
+Rel(rules, db, "Stores rules", "")
 Rel(broker, triggers, "MeasurementRecorded / DeviceBindingChanged / AccessChanged", "")
-Rel(triggers, registry, "Актуальные привязки", "")
-Rel(runner, registry, "Привязки всех устройств", "")
-Rel(triggers, db, "Dedup + запуск, транзакция", "")
-Rel(runner, db, "Забирает незавершённые запуски", "")
-Rel(runner, access, "Права владельца", "")
-Rel(runner, heating, "Команда + runId", "Сервисная аутентификация")
-Rel(runner, lighting, "Команда + runId", "Сервисная аутентификация")
-Rel(runner, gates, "Команда + runId", "Сервисная аутентификация")
-footer
-ACK события — после сохранения запуска. Повтор HTTP после сбоя использует тот же ключ.
-Отзыв прав / привязки отключает затронутые сценарии и отменяет ожидающие запуски.
-Неактуальное событие подтверждается как пропуск; новых действий не создаёт.
-Повторное подключение не включает сценарии автоматически; нужна проверка пользователем.
-end footer
-Rel(runner, video, "Команда + runId", "Сервисная аутентификация")
-skinparam footerFontSize 11
+Rel(triggers, registry, "Current bindings", "")
+Rel(runner, registry, "Bindings of all devices", "")
+Rel(triggers, db, "Dedup + run in one transaction", "")
+Rel(runner, db, "Picks up unfinished runs", "")
+Rel(runner, access, "Owner permissions", "")
+Rel(runner, command_services, "Command to the appropriate service + runId", "HTTP / service authentication")
 Lay_R(heating, lighting)
 Lay_D(heating, gates)
 Lay_R(gates, video)

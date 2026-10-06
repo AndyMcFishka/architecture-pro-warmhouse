@@ -1,31 +1,27 @@
 @startuml
 !include <C4/C4_Context>
 
-title Тёплый дом — To-Be: диаграмма контекста
+title Warmhouse — To-Be: System Context
 LAYOUT_TOP_DOWN()
 skinparam nodesep 65
 skinparam ranksep 65
 
-Person(user, "Пользователь", "Самостоятельно подключает устройства, управляет домом, настраивает сценарии и просматривает показания и видео")
+Person(user, "User", "Connects devices independently, controls the home, configures automation rules, views readings and video")
 
-System(warmhouse, "Тёплый дом", "SaaS-платформа: дома и права доступа, учёт устройств, управление отоплением, свет, ворота, телеметрия, автоматизация и видеодоступ")
-System_Ext(legacy, "Старое оборудование", "Ранее установленные датчики и контроллеры отопления; возможен polling своего статуса по ID")
-System_Ext(modern, "Новые устройства партнёров", "Датчики, контроллеры отопления, света и ворот, камеры; поддерживаемые стандартные протоколы")
+System(warmhouse, "Warmhouse", "SaaS platform: homes and access, device registry, heating, lighting, gates, telemetry, automation and video access")
+System_Ext(legacy, "Legacy Equipment", "Previously installed heating sensors and controllers; may poll their own status by ID")
+System_Ext(modern, "Modern Partner Devices", "Sensors, heating, lighting and gate controllers, cameras; supported standard protocols")
 
-Rel_(user, warmhouse, "Подключает устройства, управляет домом, задаёт сценарии; получает показания и ссылки на видео", "Веб-интерфейс", "-[norank]->")
-Rel_(warmhouse, legacy, "Запрашивает измерения и передаёт команды", "Старый протокол", "-[norank]->")
-Rel_(legacy, warmhouse, "Повторно подключается; контроллер тёплого пола опрашивает свой целевой статус", "Старый протокол / polling", "-[norank]->")
-Rel_(modern, warmhouse, "Устанавливает исходящее соединение или опрашивает платформу; передаёт измерения и получает команды", "MQTT / TLS или HTTPS", "-[norank]->")
-Rel_(user, modern, "Просматривает поток камеры напрямую по разрешённой ссылке", "Клиентское приложение", "-[norank]->")
+Rel_(user, warmhouse, "Connects devices, controls the home, configures rules; gets readings and video URLs", "Web UI", "-[norank]->")
+Rel_(warmhouse, legacy, "Requests measurements and sends commands", "Legacy protocol", "-[norank]->")
+Rel_(legacy, warmhouse, "Reconnects; floor heating controller polls its desired status", "Legacy protocol / polling", "-[norank]->")
+Rel_(modern, warmhouse, "Establishes an outbound connection or polls the platform; sends measurements and receives commands", "MQTT / TLS or HTTPS", "-[norank]->")
+Rel_(user, modern, "Views the camera stream directly through an authorized URL", "Client application", "-[norank]->")
 
 Lay_D(user, warmhouse)
 Lay_D(warmhouse, legacy)
 Lay_R(legacy, modern)
 
-footer
-  Монолит-адаптер, микросервисы, Keycloak, RabbitMQ и базы данных — внутри платформы.
-  Их структура показана на уровне Containers. Камеры включены в блок новых устройств.
-end footer
-Rel_(warmhouse, modern, "Получает временную ссылку на поток через API камеры", "HTTPS", "-[norank]->")
+Rel_(warmhouse, modern, "Obtains a temporary stream URL through the camera API", "HTTPS", "-[norank]->")
 SHOW_LEGEND()
 @enduml

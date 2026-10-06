@@ -23,27 +23,30 @@ This script will:
 Alternatively, you can run Docker Compose directly:
 
 ```bash
-docker-compose up -d
+docker compose up --build -d
 ```
 
 The API will be available at http://localhost:8080
 
-### Option 2: Manual setup
+The Go temperature simulator is available at
+`http://localhost:8081/temperature?location=Living%20Room` and
+`http://localhost:8081/temperature/1`.
+Run `Create Sensor` in the Postman collection, then repeat `Get All Sensors`
+to see fresh random temperature readings.
 
-If you prefer to run the application without Docker:
+### Run only the temperature simulator without Docker
 
-1. Start the PostgreSQL database:
+Stop the Compose temperature service first if port 8081 is already in use.
+From the `apps` directory:
 
 ```bash
-docker-compose up -d postgres
+cd temperature-api
+go test -race ./...
+go run .
 ```
 
-2. Build and run the application:
-
-```bash
-go build -o smarthome
-./smarthome
-```
+The simulator uses only the Go standard library and requires Go 1.22 or newer.
+PostgreSQL and the monolith can be started together using the Compose command above.
 
 ## API Testing
 

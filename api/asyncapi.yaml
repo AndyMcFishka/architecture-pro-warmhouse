@@ -1,0 +1,304 @@
+asyncapi: 2.6.0
+info:
+  title: Warmhouse — Device Connectivity, команды и push-телеметрия
+  version: 1.0.0
+  description: 'Документ с точки зрения Device Connectivity: subscribe — сервис получает, publish — отправляет.
+    Выбранные потоки из кодовых диаграмм; provisioning, pull-опрос и автоматизация за границей этой выборки. Имена
+    каналов — routing keys direct exchange warmhouse.internal в отдельном внутреннем vhost /internal. Постоянные
+    очереди: connectivity.commands.video, video.results, video.delivery-closed, telemetry.measurements; каждая привязана
+    к соответствующему routing key. Отдельные учётные данные и ACL для каждого сервиса, устройства не имеют доступа.
+    Повтор сохраняет eventId; inbox дедуплицирует eventId. ACK после commit; outbox, persistent messages, mandatory=true
+    и publisher confirm без basic.return. Временные ошибки: до 3 повторов с задержками 1/5/30 секунд, затем DLQ
+    для разбора и безопасного переигрывания. Невалидное сообщение — DLQ; устаревшая привязка — журнал причины и
+    ACK, кроме служебного DeliveryClosed. Недоступность реестра не означает устаревшую привязку. Publisher confirm
+    не подтверждает выполнение оборудования. Повтор команды допустим лишь при безопасной дедупликации устройством.'
+defaultContentType: application/json
+servers:
+  internal:
+    url: rabbitmq.example.test:5671
+    protocol: amqps
+    description: Проектный адрес RabbitMQ, vhost /internal; TLS с проверкой сертификата.
+    security:
+    - serviceCredentials: []
+channels:
+  commands.video.requested.v1:
+    subscribe:
+      operationId: subscribeCommandRequested
+      message:
+        $ref: '#/components/messages/CommandRequested'
+    description: Video Control → Device Connectivity. Проверить привязку, владельца команды, права автора camera:control
+      и срок непосредственно перед выдачей. Порядок sequence без пропусков; одна незавершённая команда на физическое
+      устройство. Идентификатор при повторе не меняется.
+  commands.video.result.v1:
+    publish:
+      operationId: publishCommandResult
+      message:
+        $ref: '#/components/messages/CommandResult'
+    description: Device Connectivity → Video Control. Только подтверждённый результат устройства с актуальной привязкой.
+      resultVersion задаёт Connectivity; Video Control применяет только большую версию для известной команды. commandId
+      — корреляция запроса и результата.
+  commands.video.closed.v1:
+    publish:
+      operationId: publishDeliveryClosed
+      message:
+        $ref: '#/components/messages/DeliveryClosed'
+    description: 'Device Connectivity → Video Control. Служебное закрытие учёта доставки допускается для старой
+      привязки: сверяются источник, commandId и исходные houseId/deviceId/bindingVersion команды. Общий монотонный
+      resultVersion с CommandResult. UNKNOWN блокирует дальнейшую выдачу до разрешения неопределённости; поздний
+      актуальный CommandResult может уточнить статус.'
+  telemetry.measurement.received.v1:
+    publish:
+      operationId: publishMeasurementReceived
+      message:
+        $ref: '#/components/messages/MeasurementReceived'
+    description: 'Device Connectivity → Telemetry. Пример push-измерения: источник определяется аутентифицированным
+      транспортом. Connectivity нормализует значение и единицу. Telemetry сверяет ACTIVE и bindingVersion, сохраняет
+      measurement + inbox + outbox атомарно; MeasurementRecorded для автоматизации находится за границей выбранного
+      контракта. measuredAt — исходное время измерения, occurredAt — время формирования события.'
+components:
+  securitySchemes:
+    serviceCredentials:
+      type: userPassword
+  schemas:
+    CommandRequested:
+      type: object
+      additionalProperties: false
+      required:
+      - eventId
+      - occurredAt
+      - deviceId
+      - houseId
+      - bindingVersion
+      - commandId
+      - commandOwner
+      - userId
+      - sequence
+      - action
+      - parameters
+      - expiresAt
+      properties:
+        eventId: &id004
+          type: string
+          format: uuid
+        occurredAt: &id003
+          type: string
+          format: date-time
+        deviceId: &id001
+          type: string
+          minLength: 1
+          maxLength: 128
+        houseId: *id001
+        bindingVersion: &id002
+          type: integer
+          format: int64
+          minimum: 1
+        commandId: *id001
+        commandOwner:
+          type: string
+          enum:
+          - video-control
+        userId: *id001
+        sequence: *id002
+        action:
+          type: string
+          enum:
+          - selectPreset
+        parameters:
+          type: object
+          additionalProperties: false
+          required:
+          - presetId
+          properties:
+            presetId:
+              type: string
+              minLength: 1
+              maxLength: 64
+        expiresAt: *id003
+    CommandResult:
+      type: object
+      additionalProperties: false
+      required:
+      - eventId
+      - occurredAt
+      - deviceId
+      - houseId
+      - bindingVersion
+      - commandId
+      - commandOwner
+      - resultVersion
+      - status
+      - result
+      properties:
+        eventId: *id004
+        occurredAt: *id003
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: *id002
+        commandId: *id001
+        commandOwner:
+          type: string
+          enum:
+          - video-control
+        resultVersion: *id002
+        status:
+          type: string
+          enum:
+          - SUCCEEDED
+          - FAILED
+        result:
+          type: string
+    DeliveryClosed:
+      type: object
+      additionalProperties: false
+      required:
+      - eventId
+      - occurredAt
+      - deviceId
+      - houseId
+      - bindingVersion
+      - commandId
+      - commandOwner
+      - resultVersion
+      - status
+      - reason
+      properties:
+        eventId: *id004
+        occurredAt: *id003
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: *id002
+        commandId: *id001
+        commandOwner:
+          type: string
+          enum:
+          - video-control
+        resultVersion: *id002
+        status:
+          type: string
+          enum:
+          - CANCELLED
+          - EXPIRED
+          - UNKNOWN
+        reason:
+          type: string
+    MeasurementReceived:
+      type: object
+      additionalProperties: false
+      required:
+      - eventId
+      - occurredAt
+      - deviceId
+      - houseId
+      - bindingVersion
+      - metric
+      - value
+      - unit
+      - measuredAt
+      properties:
+        eventId: *id004
+        occurredAt: *id003
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: *id002
+        metric:
+          type: string
+          minLength: 1
+        value:
+          type: number
+        unit:
+          type: string
+          minLength: 1
+        measuredAt: *id003
+  messages:
+    CommandRequested:
+      name: CommandRequested
+      title: CommandRequested
+      contentType: application/json
+      description: Video Control → Device Connectivity. Проверить привязку, владельца команды, права автора camera:control
+        и срок непосредственно перед выдачей. Порядок sequence без пропусков; одна незавершённая команда на физическое
+        устройство. Идентификатор при повторе не меняется.
+      payload:
+        $ref: '#/components/schemas/CommandRequested'
+      examples:
+      - name: typical
+        payload:
+          eventId: 11111111-1111-4111-8111-111111111111
+          occurredAt: '2026-10-06T09:00:00Z'
+          deviceId: camera-1
+          houseId: house-1
+          bindingVersion: 1
+          commandId: command-1
+          commandOwner: video-control
+          userId: user-1
+          sequence: 1
+          action: selectPreset
+          parameters:
+            presetId: entrance
+          expiresAt: '2026-10-06T09:01:00Z'
+    CommandResult:
+      name: CommandResult
+      title: CommandResult
+      contentType: application/json
+      description: Device Connectivity → Video Control. Только подтверждённый результат устройства с актуальной
+        привязкой. resultVersion задаёт Connectivity; Video Control применяет только большую версию для известной
+        команды. commandId — корреляция запроса и результата.
+      payload:
+        $ref: '#/components/schemas/CommandResult'
+      examples:
+      - name: typical
+        payload:
+          eventId: 11111111-1111-4111-8111-111111111111
+          occurredAt: '2026-10-06T09:00:00Z'
+          deviceId: camera-1
+          houseId: house-1
+          bindingVersion: 1
+          commandId: command-1
+          commandOwner: video-control
+          resultVersion: 1
+          status: SUCCEEDED
+          result: Предустановка entrance применена.
+    DeliveryClosed:
+      name: DeliveryClosed
+      title: DeliveryClosed
+      contentType: application/json
+      description: 'Device Connectivity → Video Control. Служебное закрытие учёта доставки допускается для старой
+        привязки: сверяются источник, commandId и исходные houseId/deviceId/bindingVersion команды. Общий монотонный
+        resultVersion с CommandResult. UNKNOWN блокирует дальнейшую выдачу до разрешения неопределённости; поздний
+        актуальный CommandResult может уточнить статус.'
+      payload:
+        $ref: '#/components/schemas/DeliveryClosed'
+      examples:
+      - name: typical
+        payload:
+          eventId: 11111111-1111-4111-8111-111111111111
+          occurredAt: '2026-10-06T09:00:00Z'
+          deviceId: camera-1
+          houseId: house-1
+          bindingVersion: 1
+          commandId: command-1
+          commandOwner: video-control
+          resultVersion: 2
+          status: UNKNOWN
+          reason: Срок истёк после возможной выдачи; результат не получен.
+    MeasurementReceived:
+      name: MeasurementReceived
+      title: MeasurementReceived
+      contentType: application/json
+      description: 'Device Connectivity → Telemetry. Пример push-измерения: источник определяется аутентифицированным
+        транспортом. Connectivity нормализует значение и единицу. Telemetry сверяет ACTIVE и bindingVersion, сохраняет
+        measurement + inbox + outbox атомарно; MeasurementRecorded для автоматизации находится за границей выбранного
+        контракта. measuredAt — исходное время измерения, occurredAt — время формирования события.'
+      payload:
+        $ref: '#/components/schemas/MeasurementReceived'
+      examples:
+      - name: typical
+        payload:
+          eventId: 11111111-1111-4111-8111-111111111111
+          occurredAt: '2026-10-06T09:00:00Z'
+          deviceId: sensor-1
+          houseId: house-1
+          bindingVersion: 1
+          metric: temperature
+          value: 21.5
+          unit: Cel
+          measuredAt: '2026-10-06T09:00:00Z'

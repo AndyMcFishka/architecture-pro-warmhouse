@@ -1,0 +1,663 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — выбранные HTTP API
+  version: 1.0.0
+  description: Проектные контракты задания 4. Пять операций четырёх независимых сервисов. Домены example.test —
+    обозначения, не развёрнутые серверы. HTTPS и JSON; пользовательские и сервисные JWT Keycloak проверяются по
+    подписи, issuer, audience и exp. У каждой операции свой сервер; объединение в одном документе не означает общий
+    сервис.
+security:
+- bearerAuth: []
+tags:
+- name: home-access
+- name: device-registry
+- name: telemetry
+- name: video-control
+paths:
+  /v1/access/check:
+    post:
+      tags:
+      - home-access
+      summary: Проверить право пользователя в доме
+      operationId: checkPermission
+      description: Только сервисный JWT с правом access:check. userId берётся вызывающим сервисом из проверенного
+        пользовательского JWT либо сохранённого автора команды. Произвольному клиенту этот API недоступен. Для отсутствующего
+        дома или участника возвращается 200 allowed=false; 403 означает запрет вызывающему сервису.
+      servers:
+      - url: https://home-access.example.test
+      responses:
+        '200':
+          description: Проверить право пользователя в доме
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDecision'
+              examples:
+                typical:
+                  value:
+                    allowed: true
+                denied:
+                  value:
+                    allowed: false
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessCheck'
+            examples:
+              typical:
+                value:
+                  userId: user-1
+                  houseId: house-1
+                  action: camera:control
+  /v1/devices/{deviceId}:
+    get:
+      tags:
+      - device-registry
+      summary: Получить устройство и профиль подключения
+      operationId: getDevice
+      description: Только сервисный JWT с правом devices:read. Вызывают Video Control, Telemetry и Device Connectivity.
+        Секреты подключения не возвращаются. mode описывает push/pull обмен; push измерений не определяет способ
+        доставки команд.
+      servers:
+      - url: https://device-registry.example.test
+      responses:
+        '200':
+          description: Получить устройство и профиль подключения
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                typical:
+                  value:
+                    deviceId: camera-1
+                    houseId: house-1
+                    bindingVersion: 1
+                    serialNumber: CAM-001
+                    typeId: ptz-camera
+                    status: ACTIVE
+                    supportedActions:
+                    - selectPreset
+                    supportedMeasurements: []
+                    commandOwner: video-control
+                    connectivityProfile:
+                      protocol: MQTT
+                      mode: PUSH
+                      network: INTERNET
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema: &id001
+          type: string
+          minLength: 1
+          maxLength: 128
+        examples:
+          typical:
+            value: camera-1
+  /v1/devices/{deviceId}/measurements/latest:
+    get:
+      tags:
+      - telemetry
+      summary: Прочитать последнее сохранённое измерение
+      operationId: latestMeasurement
+      description: 'Пользователь: telemetry:read для текущего дома. Сервис: JWT с правом telemetry:read и разрешённым
+        домом в сервисной политике. Проверяются ACTIVE и bindingVersion в реестре. Читается только текущая привязка;
+        данные прежнего дома не выдаются. Чтение не запускает опрос. Нет измерений выбранной метрики — 404; старое
+        измерение — 200 fresh=false.'
+      servers:
+      - url: https://telemetry.example.test
+      responses:
+        '200':
+          description: Прочитать последнее сохранённое измерение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatestMeasurement'
+              examples:
+                typical:
+                  value:
+                    measurement:
+                      deviceId: sensor-1
+                      houseId: house-1
+                      bindingVersion: 1
+                      metric: temperature
+                      value: 21.5
+                      unit: Cel
+                      measuredAt: '2026-10-06T09:00:00Z'
+                    evaluatedAt: '2026-10-06T09:00:10Z'
+                    maxAgeSeconds: 60
+                    fresh: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema: *id001
+        examples:
+          typical:
+            value: sensor-1
+      - name: metric
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        examples:
+          typical:
+            value: temperature
+      - name: maxAgeSeconds
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 86400
+          default: 60
+        examples:
+          typical:
+            value: 60
+  /v1/cameras/{cameraId}/commands:
+    post:
+      tags:
+      - video-control
+      summary: Принять команду выбора предустановки камеры
+      operationId: createCameraCommand
+      description: 'Пользовательский JWT; userId из sub. Проверяются camera:control, тип камеры, ACTIVE, commandOwner
+        и поддержка presetId. Дом и bindingVersion берутся из реестра. Команда, sequence и outbox сохраняются атомарно.
+        202 означает принятие, не выполнение. Idempotency-Key обязателен: область (sub, operationId, key), сравниваются
+        cameraId и JSON запроса. Тот же запрос возвращает ту же команду и её текущий статус с 202 без нового sequence;
+        другое содержимое — 409. Ключ хранится не менее 24 часов; после этого повтор может создать новую команду.
+        Повтор также требует актуальных прав. Для выбранного учебного контракта описано одно действие selectPreset.'
+      servers:
+      - url: https://video-control.example.test
+      responses:
+        '202':
+          description: Принять команду выбора предустановки камеры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CameraCommand'
+              examples:
+                typical:
+                  value:
+                    commandId: command-1
+                    deviceId: camera-1
+                    houseId: house-1
+                    bindingVersion: 1
+                    commandOwner: video-control
+                    userId: user-1
+                    sequence: 1
+                    action: selectPreset
+                    parameters: &id002
+                      presetId: entrance
+                    status: ACCEPTED
+                    createdAt: '2026-10-06T09:00:00Z'
+                    expiresAt: '2026-10-06T09:01:00Z'
+                    resultVersion: 0
+          headers:
+            Location:
+              description: URL чтения статуса в Video Control.
+              schema:
+                type: string
+              example: /v1/camera-commands/command-1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCameraCommand'
+            examples:
+              typical:
+                value:
+                  action: selectPreset
+                  parameters:
+                    presetId: entrance
+                  expiresAt: '2026-10-06T09:01:00Z'
+      parameters:
+      - name: cameraId
+        in: path
+        required: true
+        schema: *id001
+        examples:
+          typical:
+            value: camera-1
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id001
+        examples:
+          typical:
+            value: camera-preset-001
+  /v1/camera-commands/{commandId}:
+    get:
+      tags:
+      - video-control
+      summary: Получить состояние команды камеры
+      operationId: getCameraCommand
+      description: Требуется пользовательский JWT и camera:read на houseId, сохранённый в команде. Проверяется доступ
+        именно к исходному дому, а не к новому дому перенесённой камеры. ACCEPTED — принята, SUCCEEDED/FAILED —
+        результат устройства, CANCELLED/EXPIRED — закрыта до выдачи, UNKNOWN — могла быть выдана без достоверного
+        результата. Поздний валидный результат с большей resultVersion может уточнить UNKNOWN. UNKNOWN блокирует
+        следующие команды физическому устройству.
+      servers:
+      - url: https://video-control.example.test
+      responses:
+        '200':
+          description: Получить состояние команды камеры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CameraCommand'
+              examples:
+                typical:
+                  value:
+                    commandId: command-1
+                    deviceId: camera-1
+                    houseId: house-1
+                    bindingVersion: 1
+                    commandOwner: video-control
+                    userId: user-1
+                    sequence: 1
+                    action: selectPreset
+                    parameters: *id002
+                    status: SUCCEEDED
+                    createdAt: '2026-10-06T09:00:00Z'
+                    expiresAt: '2026-10-06T09:01:00Z'
+                    resultVersion: 1
+                    result: Предустановка entrance применена.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      parameters:
+      - name: commandId
+        in: path
+        required: true
+        schema: *id001
+        examples:
+          typical:
+            value: command-1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AccessCheck:
+      type: object
+      additionalProperties: false
+      required:
+      - userId
+      - houseId
+      - action
+      properties:
+        userId: *id001
+        houseId: *id001
+        action:
+          type: string
+          enum:
+          - telemetry:read
+          - camera:control
+          - camera:read
+    AccessDecision:
+      type: object
+      additionalProperties: false
+      required:
+      - allowed
+      properties:
+        allowed:
+          type: boolean
+    ConnectivityProfile:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - mode
+      - network
+      properties:
+        protocol:
+          type: string
+          enum:
+          - MQTT
+          - HTTPS
+          - LEGACY
+        mode:
+          type: string
+          enum:
+          - PUSH
+          - PULL
+        network:
+          type: string
+          enum:
+          - INTERNET
+          - INTRANET
+    Device:
+      type: object
+      additionalProperties: false
+      required:
+      - deviceId
+      - houseId
+      - bindingVersion
+      - serialNumber
+      - typeId
+      - status
+      - supportedActions
+      - supportedMeasurements
+      - commandOwner
+      - connectivityProfile
+      properties:
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: &id003
+          type: integer
+          format: int64
+          minimum: 1
+        serialNumber: *id001
+        typeId: *id001
+        status:
+          type: string
+          enum:
+          - PENDING
+          - ACTIVE
+          - INACTIVE
+        supportedActions:
+          type: array
+          items:
+            type: string
+        supportedMeasurements:
+          type: array
+          items:
+            type: string
+        commandOwner:
+          type: string
+          description: Владелец бизнес-команд; для камеры video-control.
+        connectivityProfile:
+          $ref: '#/components/schemas/ConnectivityProfile'
+    Measurement:
+      type: object
+      additionalProperties: false
+      required:
+      - deviceId
+      - houseId
+      - bindingVersion
+      - metric
+      - value
+      - unit
+      - measuredAt
+      properties:
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: *id003
+        metric:
+          type: string
+          minLength: 1
+        value:
+          type: number
+        unit:
+          type: string
+          minLength: 1
+        measuredAt: &id004
+          type: string
+          format: date-time
+    LatestMeasurement:
+      type: object
+      additionalProperties: false
+      required:
+      - measurement
+      - evaluatedAt
+      - maxAgeSeconds
+      - fresh
+      properties:
+        measurement:
+          $ref: '#/components/schemas/Measurement'
+        evaluatedAt: *id004
+        maxAgeSeconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+        fresh:
+          type: boolean
+          description: true, если 0 <= evaluatedAt - measuredAt <= maxAgeSeconds. Старое значение возвращается с
+            fresh=false.
+    CameraParameters:
+      type: object
+      additionalProperties: false
+      required:
+      - presetId
+      properties:
+        presetId:
+          type: string
+          minLength: 1
+          maxLength: 64
+    CreateCameraCommand:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - parameters
+      - expiresAt
+      properties:
+        action:
+          type: string
+          enum:
+          - selectPreset
+        parameters:
+          $ref: '#/components/schemas/CameraParameters'
+        expiresAt:
+          type: string
+          format: date-time
+          description: Срок в будущем, не более 5 минут от момента приёма.
+    CameraCommand:
+      type: object
+      additionalProperties: false
+      required:
+      - commandId
+      - deviceId
+      - houseId
+      - bindingVersion
+      - commandOwner
+      - userId
+      - sequence
+      - action
+      - parameters
+      - status
+      - createdAt
+      - expiresAt
+      - resultVersion
+      properties:
+        commandId: *id001
+        deviceId: *id001
+        houseId: *id001
+        bindingVersion: *id003
+        commandOwner:
+          type: string
+          enum:
+          - video-control
+        userId: *id001
+        sequence: *id003
+        action:
+          type: string
+          enum:
+          - selectPreset
+        parameters:
+          $ref: '#/components/schemas/CameraParameters'
+        status:
+          type: string
+          enum:
+          - ACCEPTED
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+          - EXPIRED
+          - UNKNOWN
+        createdAt: *id004
+        expiresAt: *id004
+        resultVersion:
+          type: integer
+          minimum: 0
+        result:
+          type: string
+          description: Присутствует после получения результата или закрытия доставки.
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: Неверные параметры или JSON.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: INVALID_REQUEST
+                message: Неверные параметры или JSON.
+    Unauthorized:
+      description: Токен отсутствует, недействителен или истёк.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: UNAUTHENTICATED
+                message: Токен отсутствует, недействителен или истёк.
+    Forbidden:
+      description: Недостаточно прав пользователя или сервиса.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: FORBIDDEN
+                message: Недостаточно прав пользователя или сервиса.
+    NotFound:
+      description: Ресурс или измерение не найдены.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: NOT_FOUND
+                message: Ресурс или измерение не найдены.
+    Conflict:
+      description: Неактивная привязка, заблокированное устройство или конфликт ключа повтора.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: CONFLICT
+                message: Неактивная привязка, заблокированное устройство или конфликт ключа повтора.
+    Unprocessable:
+      description: Камера не поддерживает действие, presetId неизвестен или срок недопустим.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: UNSUPPORTED_COMMAND
+                message: Камера не поддерживает действие, presetId неизвестен или срок недопустим.
+    InternalError:
+      description: Внутренняя ошибка сервиса.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: INTERNAL_ERROR
+                message: Внутренняя ошибка сервиса.
+    Unavailable:
+      description: Зависимость недоступна; проверка прав или привязки не выполнена.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            typical:
+              value:
+                code: DEPENDENCY_UNAVAILABLE
+                message: Зависимость недоступна; проверка прав или привязки не выполнена.

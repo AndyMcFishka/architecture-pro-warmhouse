@@ -1,56 +1,51 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Взаимодействие с устройствами
+title Warmhouse — Components: Device Connectivity
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
-Container(access, "Дома и доступ", "HTTP API", "Актуальное право автора команды")
-Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
-Container(device_bus, "RabbitMQ: vhost устройств", "MQTT / TLS", "Тот же брокер; ACL topics, exchange и очередей")
-Container(devices, "Новые устройства", "HTTPS", "HTTP polling, показания и результаты")
-Container(monolith, "Монолит / legacy-адаптер", "HTTP API", "Старый протокол и доступ к оборудованию")
-Container_Boundary(service, "Взаимодействие с устройствами") {
-  Component(expiry, "Обработка сроков и отмены", "Фоновый обработчик", "Сроки / отмена; DeliveryClosed и resultVersion")
-  Component(inbox, "Приём внутренних запросов", "AMQP consumer", "CommandRequested / PollRequested; inbox до ACK")
-  Component(dispatcher, "Диспетчер доставки", "Фоновый обработчик", "Права, привязка, TTL и sequence; одна команда на устройство")
-  Component(mqtt, "MQTT-адаптер", "AMQP ↔ MQTT vhost", "Выдаёт команды; принимает сообщения только из разрешённого topic устройства")
-  Component(http, "HTTP-адаптер устройств", "HTTPS API", "Аутентифицирует устройство; выдаёт его команды; принимает push и результаты")
-  Component(legacy, "Клиент legacy API", "HTTP client", "Вызывает монолит с сервисной аутентификацией")
-  Component(ingest, "Приём и нормализация", "Модуль", "Источник, bindingVersion, correlation_id; пропуск устаревших")
-  Component(relay, "Публикатор outbox", "Фоновый обработчик", "Публикует измерения и результаты во внутренний vhost")
+Container(registry, "Device Registry", "HTTP API", "Home, binding and device profile")
+Container(access, "Home Access", "HTTP API", "Current permission of the command author")
+Container(broker, "RabbitMQ", "AMQP", "Internal vhost; ACK / confirms")
+Container(device_bus, "RabbitMQ: Device Vhost", "MQTT / TLS", "Same broker; topic, exchange and queue ACLs")
+System_Ext(devices, "Modern Devices", "MQTT / TLS or HTTPS polling; readings and results")
+Container(monolith, "Monolith / Legacy Adapter", "HTTP API", "Legacy protocol and equipment access")
+Container_Boundary(service, "Device Connectivity") {
+  Component(expiry, "Expiry and Cancellation Worker", "Background worker", "Expiry / cancellation; DeliveryClosed and resultVersion")
+  Component(inbox, "Internal Request Consumer", "AMQP consumer", "CommandRequested / PollRequested; inbox before ACK")
+  Component(dispatcher, "Delivery Dispatcher", "Background worker", "Permissions, binding, TTL and sequence; one command per device")
+  Component(mqtt, "MQTT Adapter", "AMQP ↔ MQTT vhost", "Dispatches commands; accepts messages only from the authorized device topic")
+  Component(http, "Device HTTP Adapter", "HTTPS API", "Authenticates devices; serves their commands; accepts push data and results")
+  Component(legacy, "Legacy API Client", "HTTP client", "Calls the monolith with service authentication")
+  Component(ingest, "Ingestion and Normalization", "Module", "Source, bindingVersion, correlation_id; skips stale messages")
+  Component(relay, "Outbox Relay", "Background worker", "Publishes measurements and results to the internal vhost")
 }
-ContainerDb(db, "БД connectivity", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Connectivity DB", "PostgreSQL", "Dedicated database and role")
 
 Rel(broker, inbox, "CommandRequested / PollRequested")
-Rel(expiry, db, "Статус + outbox, транзакция")
-Rel(inbox, db, "Inbox + задание в транзакции")
-Rel(dispatcher, db, "Забирает задания; хранит попытки")
+Rel(expiry, db, "Status + outbox in one transaction")
+Rel(inbox, db, "Inbox + job in one transaction")
+Rel(dispatcher, db, "Picks up jobs; stores attempts")
 Rel(dispatcher, registry, "ACTIVE / bindingVersion / owner")
-Rel(dispatcher, access, "Право на выдачу")
-Rel(http, dispatcher, "Проверка перед выдачей")
-Rel(ingest, registry, "Актуальная привязка")
+Rel(dispatcher, access, "Dispatch permission")
+Rel(http, dispatcher, "Validation before dispatch")
+Rel(ingest, registry, "Current binding")
 Rel(dispatcher, http, "HTTP / legacy polling")
-Rel(dispatcher, mqtt, "Выбирает MQTT")
-Rel(dispatcher, legacy, "Выбирает legacy/push")
-Rel(monolith, http, "Legacy polling", "Внутренний HTTP")
-Rel(http, db, "Pending, прежний ID, TTL")
-Rel(mqtt, device_bus, "Команды и сообщения устройства")
-Rel(devices, http, "Забирает команду / отправляет данные")
-Rel(legacy, monolith, "Опрос / команда")
-Rel(mqtt, ingest, "Сообщение из vhost устройств")
-Rel(http, ingest, "Проверенные данные устройства")
-Rel(legacy, ingest, "Ответ старого протокола")
-Rel(ingest, db, "Результат + outbox в транзакции")
-Rel(relay, db, "Читает / отмечает outbox")
+Rel(dispatcher, mqtt, "Selects MQTT")
+Rel(dispatcher, legacy, "Legacy polling / legacy push commands")
+Rel(monolith, http, "Legacy polling", "Internal HTTP")
+Rel(http, db, "Pending command, existing ID, TTL")
+Rel(mqtt, device_bus, "Publishes commands", "AMQP")
+Rel(device_bus, mqtt, "Device telemetry and results", "AMQP")
+Rel(devices, device_bus, "Outbound connection; telemetry, commands, results", "MQTT / TLS")
+Rel(devices, http, "Fetches commands / sends data")
+Rel(legacy, monolith, "Poll / command")
+Rel(mqtt, ingest, "Message from the device vhost")
+Rel(http, ingest, "Validated device data")
+Rel(legacy, ingest, "Legacy protocol response")
+Rel(ingest, db, "Result + outbox in one transaction")
+Rel(relay, db, "Reads / marks outbox messages")
 Rel(relay, broker, "MeasurementReceived / CommandResult / DeliveryClosed / PollFailed")
-footer
-Результат адресуется commandOwner; внутренние публикации: mandatory + confirm без basic.return.
-При недоступности реестра или сервиса прав выдача приостанавливается.
-Неактуальные сообщения: ACK после записи причины пропуска; без выполнения и новых измерений.
-ACK брокера не подтверждает физическое выполнение. Неизвестный результат не превращается в успех.
-end footer
-skinparam footerFontSize 11
 SHOW_LEGEND()
 @enduml

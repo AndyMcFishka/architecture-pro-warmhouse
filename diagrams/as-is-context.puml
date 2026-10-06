@@ -1,18 +1,18 @@
 @startuml
 !include <C4/C4_Context>
 
-title Тёплый дом — As-Is: диаграмма контекста
+title Warmhouse — As-Is: System Context
 
-Person(user, "Пользователь", "Удалённо управляет отоплением и просматривает температуру дома")
-Person(technician, "Специалист по подключению", "Устанавливает и настраивает оборудование в доме")
+Person(user, "User", "Remotely controls heating and views home temperature")
+Person(technician, "Installation Technician", "Installs and configures equipment in the home")
 
-System(warmhouse, "Тёплый дом", "Монолитная система: управление отоплением, телеметрия (температура), регистрация и учёт устройств")
-System_Ext(equipment, "Система отопления с датчиками и модулем управления", "Оборудование в домах: измеряет температуру и выполняет команды управления отоплением")
+System(warmhouse, "Warmhouse", "Monolithic system: heating control, temperature telemetry, device registration and inventory")
+System_Ext(equipment, "Heating System with Sensors and Controller", "Home equipment: measures temperature and executes heating commands")
 
-Rel(user, warmhouse, "Управляет отоплением и просматривает температуру", "Веб-интерфейс")
-Rel(technician, equipment, "Устанавливает и настраивает при выезде в дом")
-Rel(warmhouse, equipment, "Отправляет команды включения/выключения и запрашивает температуру", "Синхронное взаимодействие")
-Rel(equipment, warmhouse, "Регистрируется при включении")
+Rel(user, warmhouse, "Controls heating and views temperature", "Web UI")
+Rel(technician, equipment, "Installs and configures equipment on site")
+Rel(warmhouse, equipment, "Sends on/off commands and requests temperature", "Synchronous communication")
+Rel(equipment, warmhouse, "Registers on startup")
 
 SHOW_LEGEND()
 @enduml

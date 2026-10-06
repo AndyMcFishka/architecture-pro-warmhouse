@@ -1,30 +1,29 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Дома и доступ
+title Warmhouse — Components: Home Access
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(client, "Веб-клиент / сервисы", "HTTPS / HTTP", "JWT / сервисная идентичность")
-Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
-Container(broker, "RabbitMQ", "AMQP", "AccessChanged; внутренний vhost")
-Container_Boundary(service, "Дома и доступ") {
-  Component(api, "API домов и прав", "HTTP", "Создание дома, участники, запрос разрешения")
-  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
-  Component(policy, "Правила доступа", "Модуль", "Владелец, участник, действие; разрешённые изменения")
-  Component(relay, "Публикатор outbox", "Фоновый обработчик", "AccessChanged; mandatory + confirm без basic.return")
-  Component(repo, "Хранилище домов и участников", "SQL", "Связь с пользователем по subject Keycloak; пароли не хранятся")
+Container(client, "Web Client / Services", "HTTPS / HTTP", "JWT / service identity")
+Container(idp, "Keycloak", "OIDC / JWKS", "JWT keys; JWKS cache")
+Container(broker, "RabbitMQ", "AMQP", "AccessChanged; internal vhost")
+Container_Boundary(service, "Home Access") {
+  Component(api, "Home and Access API", "HTTP", "Home creation, members, permission queries")
+  Component(auth, "Access Validation", "Module", "JWT: issuer, audience, expiry; service identity")
+  Component(policy, "Access Policy", "Module", "Owner, member, action; allowed changes")
+  Component(relay, "Outbox Relay", "Background worker", "AccessChanged; mandatory + confirm without basic.return")
+  Component(repo, "Home and Membership Repository", "SQL", "User linked by Keycloak subject; no passwords stored")
 }
-ContainerDb(db, "БД access", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Access DB", "PostgreSQL", "Dedicated database and role")
 
-Rel(client, api, "Запрашивает операцию")
-Rel(api, auth, "Аутентифицирует запрос")
-Rel(auth, idp, "Получает JWKS")
-Rel(api, policy, "После проверки идентичности")
-Rel(policy, repo, "Проверяет и изменяет членство")
-Rel(repo, db, "Права + версия + outbox в одной транзакции")
-Rel(relay, db, "Читает / отмечает outbox")
-Rel(relay, broker, "AccessChanged: дом, пользователь, версия прав")
-skinparam footerFontSize 11
+Rel(client, api, "Requests an operation")
+Rel(api, auth, "Authenticates the request")
+Rel(auth, idp, "Fetches JWKS")
+Rel(api, policy, "After identity verification")
+Rel(policy, repo, "Validates and updates membership")
+Rel(repo, db, "Permissions + version + outbox in one transaction")
+Rel(relay, db, "Reads / marks outbox messages")
+Rel(relay, broker, "AccessChanged: home, user, permission version")
 SHOW_LEGEND()
 @enduml

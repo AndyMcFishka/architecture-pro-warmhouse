@@ -1,47 +1,39 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Монолит как legacy-адаптер
+title Warmhouse — Components: Monolith as Legacy Adapter
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(transport, "Взаимодействие с устройствами", "Внутренний HTTP API", "Инициирует опрос и доставку команд")
-Container(devices, "Legacy-оборудование", "Старый протокол", "В учебной заготовке температуру имитирует temperature-api")
-Container(telemetry, "Телеметрия", "Внутренний HTTP API", "Температура, время измерения и актуальность")
-Container(registry, "Учёт устройств", "Внутренний HTTP API", "Реестр устройств и профили подключения")
-Container_Boundary(service, "Монолит как legacy-адаптер") {
-  Component(polling, "Фасад polling-контроллеров", "Legacy HTTP", "Идентичность / ID; карточка и desiredStatus")
-  Component(api, "Внутренний API адаптера", "Go / Gin", "Отдельные операции опроса и команд; сервисная аутентификация")
-  Component(read, "Чтение устройств и показаний", "Go / HTTP", "Читает новые API без опроса датчика")
-  Component(mapping, "Сопоставление идентификаторов", "Go", "device_id → адрес и идентификатор старого протокола")
-  Component(poll, "Опрос legacy-датчика", "Go / HTTP", "Физический опрос; таймаут и разбор ответа")
-  Component(commands, "Адаптер команд", "Go; требуется реализация", "Преобразует команду в старый протокол; не выдумывает подтверждение")
-  Component(dedup, "Учёт попыток команд", "SQL", "Устойчивый command_id; защита от повторной отправки и неизвестный результат")
+Container(transport, "Device Connectivity", "Internal HTTP API", "Initiates polling and command delivery")
+System_Ext(devices, "Legacy Equipment", "Heating sensors and controllers; legacy protocol")
+Container(telemetry, "Telemetry", "Internal HTTP API", "Temperature, measurement time and freshness")
+Container(registry, "Device Registry", "Internal HTTP API", "Device registry and connectivity profiles")
+Container_Boundary(service, "Monolith as Legacy Adapter") {
+  Component(polling, "Polling Controller Facade", "Legacy HTTP", "Identity / ID; device record and desiredStatus")
+  Component(api, "Internal Adapter API", "Go / Gin", "Separate polling and command operations; service authentication")
+  Component(read, "Device and Measurement Reader", "Go / HTTP", "Reads new APIs without polling the sensor")
+  Component(mapping, "Identifier Mapping", "Go", "Maps device_id to legacy protocol address and identifier")
+  Component(poll, "Legacy Sensor Poller", "Go / HTTP", "Physical polling; timeout and response parsing")
+  Component(commands, "Command Adapter", "Go; implementation required", "Converts commands to the legacy protocol; never fabricates acknowledgements")
+  Component(dedup, "Command Attempt Tracker", "SQL", "Stable command_id; duplicate dispatch protection and unknown outcomes")
 }
-ContainerDb(db, "БД legacy", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Legacy DB", "PostgreSQL", "Dedicated database and role")
 
-Rel(transport, api, "Запрашивает опрос / команду")
-Rel(polling, read, "Карточка и показание")
-Rel(devices, polling, "Контроллер пола поллит себя по ID")
-Rel(polling, transport, "Разрешённая pending-команда", "HTTP; сервис + device identity")
+Rel(transport, api, "Requests a poll / command")
+Rel(polling, read, "Device record and reading")
+Rel(devices, polling, "Floor heating controller polls its own status by ID")
+Rel(polling, transport, "Authorized pending command", "HTTP; service + device identity")
 Rel(polling, dedup, "commandId / desiredStatus")
-Rel(read, telemetry, "Показание и время", "HTTP / сервисная аутентификация")
-Rel(read, registry, "Карточки и профили", "HTTP / сервисная аутентификация")
-Rel(api, mapping, "Разрешает device_id")
-Rel(mapping, db, "Читает технические настройки")
-Rel(api, poll, "Опрос")
-Rel(api, commands, "Команда")
-Rel(commands, dedup, "commandId / попытка")
-Rel(dedup, db, "Сохраняет состояние попытки")
-Rel(poll, devices, "Запрашивает измерение")
-Rel(commands, devices, "Передаёт команду legacy/push")
-footer
-Это целевое изменение монолита, а не описание уже готового кода.
-GET контроллера не доказывает выполнение; reportedStatus не равен desiredStatus.
-При отсутствии разрешённой команды фасад не выдаёт указание изменить состояние.
-Собственного расписания нет; реестр домов/устройств и история измерений принадлежат новым сервисам.
-После сбоя с неизвестным исходом не повторяет неидемпотентную команду вслепую.
-end footer
-skinparam footerFontSize 11
+Rel(read, telemetry, "Reading and timestamp", "HTTP / service authentication")
+Rel(read, registry, "Device records and profiles", "HTTP / service authentication")
+Rel(api, mapping, "Resolves device_id")
+Rel(mapping, db, "Reads technical settings")
+Rel(api, poll, "Poll")
+Rel(api, commands, "Command")
+Rel(commands, dedup, "commandId / attempt")
+Rel(dedup, db, "Persists attempt state")
+Rel(poll, devices, "Requests a measurement")
+Rel(commands, devices, "Sends a legacy push command")
 SHOW_LEGEND()
 @enduml

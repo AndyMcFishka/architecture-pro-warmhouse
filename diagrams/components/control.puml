@@ -1,41 +1,36 @@
 @startuml
 !include <C4/C4_Component>
-title Тёплый дом — Components: Управление отоплением
+title Warmhouse — Components: Heating Control
 LAYOUT_TOP_DOWN()
 skinparam nodesep 30
 skinparam ranksep 50
 
-Container(client, "Клиент / автоматизация", "HTTPS / HTTP", "Пользователь или проверенный контекст владельца сценария")
-Container(idp, "Keycloak", "OIDC / JWKS", "Ключи JWT; кэш JWKS")
-Container(access, "Дома и доступ", "HTTP API", "Проверка действующих прав на дом")
-Container(registry, "Учёт устройств", "HTTP API", "Дом, привязка и профиль устройства")
-Container(broker, "RabbitMQ", "AMQP", "Внутренний vhost; ACK / confirms")
-Container_Boundary(service, "Управление отоплением") {
-  Component(api, "API команд и статусов", "HTTP", "Команда, Idempotency-Key; возвращает command_id")
-  Component(auth, "Проверка доступа", "Модуль", "JWT: issuer, audience, срок; сервисная идентичность")
-  Component(commands, "Обработчик команд", "Модуль", "Правила отопления; Command + sequence + outbox")
-  Component(results, "Обработчик результатов", "AMQP consumer", "Dedup, resultVersion; CommandResult / DeliveryClosed")
-  Component(relay, "Публикатор outbox", "Фоновый обработчик", "CommandRequested; mandatory + confirm без return")
+Container(client, "Client / Automation", "HTTPS / HTTP", "User or verified automation rule owner context")
+Container(idp, "Keycloak", "OIDC / JWKS", "JWT keys; JWKS cache")
+Container(access, "Home Access", "HTTP API", "Validates current home permissions")
+Container(registry, "Device Registry", "HTTP API", "Home, binding and device profile")
+Container(broker, "RabbitMQ", "AMQP", "Internal vhost; ACK / confirms")
+Container_Boundary(service, "Heating Control") {
+  Component(api, "Command and Status API", "HTTP", "Command, Idempotency-Key; returns command_id")
+  Component(auth, "Access Validation", "Module", "JWT: issuer, audience, expiry; service identity")
+  Component(commands, "Command Handler", "Module", "Heating rules; Command + sequence + outbox")
+  Component(results, "Result Consumer", "AMQP consumer", "Dedup, resultVersion; CommandResult / DeliveryClosed")
+  Component(relay, "Outbox Relay", "Background worker", "CommandRequested; mandatory + confirm without return")
 }
-ContainerDb(db, "БД heating", "PostgreSQL", "Своя БД и роль")
+ContainerDb(db, "Heating DB", "PostgreSQL", "Dedicated database and role")
 
-Rel(client, api, "Создаёт команду / читает статус")
-Rel(api, auth, "Проверяет идентичность")
-Rel(auth, idp, "Получает JWKS")
-Rel(auth, registry, "Определяет устройство и дом")
-Rel(auth, access, "Проверяет актуальные права")
-Rel(api, commands, "После проверки доступа")
+Rel(client, api, "Creates a command / reads status")
+Rel(api, auth, "Verifies identity")
+Rel(auth, idp, "Fetches JWKS")
+Rel(auth, registry, "Resolves device and home")
+Rel(auth, access, "Checks current permissions")
+Rel(api, commands, "After access validation")
+Rel(commands, registry, "Capabilities / commandOwner")
 Rel(commands, db, "Command + sequence + outbox")
-Rel(relay, db, "Читает / отмечает outbox")
-Rel(relay, broker, "Публикует команды")
+Rel(relay, db, "Reads / marks outbox messages")
+Rel(relay, broker, "Publishes commands")
 Rel(broker, results, "CommandResult / DeliveryClosed")
-Rel(results, registry, "Актуальность CommandResult")
-Rel(results, db, "Результат + processed event в транзакции")
-footer
-Показан сервис управления отоплением; освещение, ворота и управление видеонаблюдением — отдельные сервисы с собственными БД.
-У каждого управляемого устройства один владелец команд; доставка — в сервисе взаимодействия.
-Повторный ключ с другим содержимым отклоняется. ACK результата — после commit.
-end footer
-skinparam footerFontSize 11
+Rel(results, registry, "CommandResult binding validity")
+Rel(results, db, "Result + processed event in one transaction")
 SHOW_LEGEND()
 @enduml
