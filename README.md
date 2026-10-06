@@ -72,6 +72,8 @@
 
 [Телеметрия (PlantUML)](diagrams/components/telemetry.puml)
 
+[Отопление (PlantUML)](diagrams/components/heating.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
