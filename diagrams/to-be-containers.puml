@@ -14,7 +14,7 @@ System_Boundary(platform, "Warmhouse") {
     Container(telemetry, "Телеметрия", "HTTP API", "Приём новых показаний, опрос старых датчиков, история")
     Container(heating, "Отопление", "HTTP API", "Команды и состояние отопления")
     Container(lighting, "Освещение", "HTTP API", "Команды и состояние света")
-    Container(gates, "Ворота", "HTTP API", "Команды и состояние ворот")
+    Container(gates, "Ворота", "HTTP API", "Запереть / отпереть; состояние замка")
     Container(video, "Видеонаблюдение", "HTTP API", "Доступ к потоку камеры")
     Container(rules, "Сценарии", "HTTP API", "Опрос телеметрии и запуск команд")
     ContainerDb(db, "Существующий сервер БД", "PostgreSQL", "Своя схема и роль у каждого сервиса с хранилищем. SQL-связи опущены")
