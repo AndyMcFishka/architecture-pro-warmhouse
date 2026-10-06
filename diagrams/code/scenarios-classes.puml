@@ -12,11 +12,20 @@ class RuleEvaluator {
   +interval: Duration
   +tick(): void
 }
-class TelemetryClient {
+class TelemetryClient <<HTTP>> {
   +latest(sensorId: ID, metric: String): Reading?
 }
 class CommandClient {
   +execute(run: Run): CommandResult
+}
+class HeatingClient <<HTTP>> {
+  +setEnabled(deviceId: ID, enabled: Boolean, key: UUID): CommandResult
+}
+class LightingClient <<HTTP>> {
+  +setEnabled(deviceId: ID, enabled: Boolean, key: UUID): CommandResult
+}
+class GatesClient <<HTTP>> {
+  +setLocked(deviceId: ID, locked: Boolean, key: UUID): CommandResult
 }
 class ScenarioStore {
   +saveRule(rule: Rule): void
@@ -81,6 +90,11 @@ Rule ..> Comparison
 TelemetryClient ..> Reading
 CommandClient ..> CommandResult
 CommandClient ..> Run
+CommandClient --> HeatingClient : HEATING_ON / HEATING_OFF
+CommandClient --> LightingClient : LIGHT_ON / LIGHT_OFF
+CommandClient --> GatesClient : GATE_LOCK / GATE_UNLOCK
+HeatingClient -[hidden]down-> LightingClient
+LightingClient -[hidden]down-> GatesClient
 note bottom of ScenarioStore
   startIfRising атомарно меняет previousMatch и сохраняет запуск.
   Run хранит снимок действия и устройства, его ID — ключ повтора.
@@ -92,7 +106,9 @@ note bottom of RuleEvaluator
   Новое включённое правило начинает с previousMatch = false.
 end note
 note bottom of CommandClient
-  Соответствие Action → сервис и запрос жёстко задано в коде.
+  CommandClient выбирает HTTP-клиент по Action.
+  Соответствие задано в коде.
+  Всем клиентам передаётся Run.id как постоянный ключ повтора.
   Адреса сервисов — в настройках. Каталогов действий нет.
   Таймаут — UNKNOWN, не подтверждение выполнения.
 end note
