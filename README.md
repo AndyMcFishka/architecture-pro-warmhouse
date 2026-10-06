@@ -74,6 +74,8 @@
 
 [Отопление (PlantUML)](diagrams/components/heating.puml)
 
+[Освещение (PlantUML)](diagrams/components/lighting.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
