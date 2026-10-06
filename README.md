@@ -70,6 +70,8 @@
 
 [Взаимодействие с устройствами (PlantUML)](diagrams/components/connectivity.puml)
 
+[Телеметрия (PlantUML)](diagrams/components/telemetry.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
