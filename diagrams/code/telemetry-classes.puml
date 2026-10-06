@@ -1,5 +1,5 @@
 @startuml
-title Warmhouse — классы телеметрии: приём новых измерений
+title Warmhouse — классы сервиса телеметрии
 hide empty members
 skinparam classAttributeIconSize 0
 class TelemetryApi {
@@ -8,6 +8,11 @@ class TelemetryApi {
   +getHistory(deviceId: ID, from: DateTime, to: DateTime): List<Measurement>
   +getTemperatureById(deviceId: ID): TemperatureResponse
   +getTemperatureByLocation(location: String): TemperatureResponse
+}
+class LegacySensorPoller {
+  +interval: Duration
+  +timeout: Duration
+  +pollOnce(): void
 }
 enum SaveResult {
   SAVED
@@ -64,5 +69,14 @@ note top of TelemetryApi
   Подтверждение — после сохранения.
   Ошибки валидации, конфликты и сбои возвращаются отдельно.
   TemperatureResponse сохраняет контракт старого клиента монолита.
+end note
+LegacySensorPoller --> MonolithClient : список и опрос
+LegacySensorPoller --> MeasurementProcessor : передаёт измерение
+LegacySensorPoller ..> Measurement
+note top of LegacySensorPoller
+  Опрашивает только старые датчики через монолит.
+  ID опроса сохраняется при повторе записи результата.
+  Ошибка одного датчика не прерывает цикл.
+  Нет времени датчика — measuredAt равен времени успешного наблюдения.
 end note
 @enduml

@@ -88,9 +88,9 @@
 
 [Отправка команды отоплению и повтор запроса (PlantUML)](diagrams/code/heating-command.puml)
 
-Получение телеметрии от новых устройств: [последовательность](diagrams/code/telemetry-push.puml) · [классы](diagrams/code/telemetry-push-classes.puml)
+Получение телеметрии от новых устройств: [последовательность](diagrams/code/telemetry-push.puml) · [классы](diagrams/code/telemetry-classes.puml)
 
-Получение телеметрии от старых устройств: [последовательность](diagrams/code/telemetry-poll.puml) · [классы](diagrams/code/telemetry-poll-classes.puml)
+Получение телеметрии от старых устройств: [последовательность](diagrams/code/telemetry-poll.puml) · [классы](diagrams/code/telemetry-classes.puml)
 
 Просмотр видеопотока: [последовательность](diagrams/code/video-view.puml) · [классы](diagrams/code/video-classes.puml)
 
