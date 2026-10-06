@@ -78,6 +78,8 @@
 
 [Ворота (PlantUML)](diagrams/components/gates.puml)
 
+[Видеонаблюдение (PlantUML)](diagrams/components/video.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
