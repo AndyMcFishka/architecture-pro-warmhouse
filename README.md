@@ -88,6 +88,14 @@
 
 [Отправка команды отоплению и повтор запроса (PlantUML)](diagrams/code/heating-command.puml)
 
+[Получение телеметрии от новых устройств (PlantUML)](diagrams/code/telemetry-push.puml)
+
+[Получение телеметрии от старых устройств (PlantUML)](diagrams/code/telemetry-poll.puml)
+
+[Просмотр видеопотока (PlantUML)](diagrams/code/video-view.puml)
+
+[Выполнение сценария по измерению (PlantUML)](diagrams/code/scenario-execution.puml)
+
 # Задание 3. Разработка ER-диаграммы
 
 Добавьте сюда ER-диаграмму. Она должна отражать ключевые сущности системы, их атрибуты и тип связей между ними.

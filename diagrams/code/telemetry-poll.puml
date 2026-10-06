@@ -1,0 +1,49 @@
+@startuml
+title Warmhouse — получение измерений от старых датчиков
+hide footbox
+box "Телеметрия" #EAF2F8
+participant "Опрос старых датчиков" as poller
+participant "Клиент монолита" as client
+participant "Обработка измерений" as ingest
+end box
+participant "Внутренний API\nи адаптер монолита" as monolith
+participant "Старый датчик" as sensor
+database "PostgreSQL\ntelemetry" as db
+
+poller -> poller: Наступил интервал опроса
+poller -> client: Получить список старых датчиков
+client -> monolith: Прочитать реестр без показаний
+monolith --> client: Старые датчики и параметры
+client --> poller: Список датчиков
+loop Для каждого старого датчика
+    poller -> client: poll(deviceId)
+    client -> monolith: Внутренний запрос измерения
+    monolith -> sensor: Запросить показание по старому протоколу
+    alt Получен ответ
+        sensor --> monolith: Значение и время, если доступно
+        monolith --> client: Измерение
+        client --> poller: Результат опроса
+        poller -> ingest: Проверить и сохранить измерение с ID опроса
+        ingest -> client: Проверить датчик и тип измерения
+        client -> monolith: Прочитать карточку датчика
+        monolith --> client: Карточка
+        client --> ingest: Параметры измерения
+        alt Данные корректны
+            ingest -> db: Сохранить измерение без дубликата
+            db --> ingest: Сохранено / ошибка
+            ingest --> poller: Результат сохранения
+        else Данные неверны или проверка недоступна
+            ingest --> poller: Измерение не сохранено
+        end
+    else Ошибка или таймаут опроса
+        monolith --> client: Ошибка опроса
+        client --> poller: Перейти к следующему датчику
+    end
+end
+note over poller, db
+  Ошибка не обновляет последнее показание и его время.
+  Нет времени от датчика — отмечаем время успешного опроса как время наблюдения.
+  Недоступен реестр — этот цикл пропускается. Интервал и таймаут настраиваются.
+  Внутренний API монолита не вызывает телеметрию повторно.
+end note
+@enduml

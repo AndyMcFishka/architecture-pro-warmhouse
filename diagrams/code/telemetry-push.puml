@@ -1,0 +1,45 @@
+@startuml
+title Warmhouse — получение измерения от нового датчика
+hide footbox
+participant "Новый датчик" as sensor
+participant "Обратный прокси" as proxy
+box "Телеметрия" #EAF2F8
+participant "HTTP API" as api
+participant "Обработка измерений" as ingest
+end box
+participant "Реестр монолита" as registry
+database "PostgreSQL\ntelemetry" as db
+
+sensor -> proxy: HTTPS: ID измерения, датчик, значение, единица, время
+proxy -> api: Передать измерение
+api -> ingest: accept(measurement)
+ingest -> registry: Проверить датчик и тип измерения\nчерез клиент монолита
+registry --> ingest: Данные датчика / ошибка
+ingest -> ingest: Проверить формат, значение, единицу и время
+break Неизвестный датчик, неверные данные или недоступный реестр
+    ingest --> api: Отклонить / временная ошибка
+    api --> proxy: Ошибка
+    proxy --> sensor: Измерение не принято
+end
+ingest -> db: Сохранить по уникальной паре\n(deviceId, measurementId)
+alt Новое корректное измерение
+    db --> ingest: Сохранено
+else Повтор с теми же данными
+    db --> ingest: Уже сохранено, без дубликата
+else Тот же ID с другими данными или ошибка сохранения
+    db --> ingest: Конфликт / ошибка
+    ingest --> api: Не подтверждать приём
+    api --> proxy: Ошибка
+    proxy --> sensor: Конфликт / временная ошибка
+end
+opt Измерение сохранено или подтверждён идентичный повтор
+    ingest --> api: Принято
+    api --> proxy: Подтверждение
+    proxy --> sensor: Подтверждение
+end
+note over sensor, db
+  При временной ошибке или потере подтверждения датчик повторяет тот же ID и данные.
+  Позднее измерение остаётся в истории; последнее выбирается по времени измерения.
+  Новые датчики сервером не опрашиваются.
+end note
+@enduml

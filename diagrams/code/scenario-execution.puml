@@ -1,0 +1,62 @@
+@startuml
+title Warmhouse — выполнение сценария по измерению
+hide footbox
+box "Сценарии" #EAF2F8
+participant "Проверка правил" as evaluator
+participant "Клиент телеметрии" as telemetryClient
+participant "Клиент управления" as commandClient
+end box
+database "PostgreSQL\nscenarios" as db
+participant "Телеметрия" as telemetry
+participant "Сервис управления\nотоплением, светом или воротами" as control
+
+note over evaluator, db
+  Правило уже сохранено пользователем через API:
+  датчик, измерение, условие, действие и целевое устройство.
+end note
+evaluator -> evaluator: Наступил интервал проверки
+evaluator -> db: Получить включённые правила
+db --> evaluator: Правила и предыдущее состояние условий
+loop Для каждого правила
+    evaluator -> telemetryClient: Получить последнее измерение датчика
+    telemetryClient -> telemetry: Запрос показания и времени
+    telemetry --> telemetryClient: Измерение / нет данных / ошибка
+    telemetryClient --> evaluator: Результат
+    alt Нет свежего корректного измерения
+        evaluator -> evaluator: Пропустить, не менять состояние условия
+    else Есть свежее измерение
+        evaluator -> evaluator: Вычислить условие
+        alt Условие ложно
+            evaluator -> db: Сохранить: условие ложно
+            db --> evaluator: Сохранено
+        else Условие истинно и раньше было истинным
+            evaluator -> evaluator: Не создавать повторный запуск
+        else Переход из ложного в истинное
+            evaluator -> db: Одной транзакцией: перепроверить состояние,\nсохранить истинное условие и запуск с постоянным ключом
+            db --> evaluator: Запуск сохранён / уже создан / ошибка
+        end
+    end
+end
+
+evaluator -> db: Получить сохранённые запуски, ожидающие отправки
+db --> evaluator: Запуски с их ключами
+loop Для каждого ожидающего запуска
+    evaluator -> commandClient: execute(action, deviceId, runKey)
+    commandClient -> commandClient: Выбрать сервис и команду\nпо фиксированному соответствию в коде
+    commandClient -> control: HTTP: команда с ключом запуска
+    alt Получен ответ
+        control --> commandClient: ID команды и статус
+        commandClient --> evaluator: Результат
+        evaluator -> db: Сохранить ID команды и результат запуска
+    else Таймаут или потеря ответа
+        commandClient --> evaluator: Результат неизвестен
+        evaluator -> db: Сохранить неопределённость; оставить тот же ключ
+    end
+end
+note over evaluator, control
+  Повтор незавершённой отправки использует тот же ключ и получает ту же команду.
+  Новый ключ при таймауте не создаётся. UNKNOWN не считается успехом.
+  Условие нового включённого правила изначально ложное.
+  Каталогов действий нет; реакции на команды и состояния устройств вне MVP.
+end note
+@enduml
