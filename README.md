@@ -80,6 +80,8 @@
 
 [Видеонаблюдение (PlantUML)](diagrams/components/video.puml)
 
+[Сценарии (PlantUML)](diagrams/components/scenarios.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
