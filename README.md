@@ -82,6 +82,8 @@
 
 [Сценарии (PlantUML)](diagrams/components/scenarios.puml)
 
+[Монолит: интеграция с новыми сервисами (PlantUML)](diagrams/components/monolith.puml)
+
 **Диаграмма кода (Code)**
 
 Добавьте одну диаграмму или несколько.
