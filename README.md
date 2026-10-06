@@ -88,13 +88,13 @@
 
 [Отправка команды отоплению и повтор запроса (PlantUML)](diagrams/code/heating-command.puml)
 
-[Получение телеметрии от новых устройств (PlantUML)](diagrams/code/telemetry-push.puml)
+Получение телеметрии от новых устройств: [последовательность](diagrams/code/telemetry-push.puml) · [классы](diagrams/code/telemetry-push-classes.puml)
 
-[Получение телеметрии от старых устройств (PlantUML)](diagrams/code/telemetry-poll.puml)
+Получение телеметрии от старых устройств: [последовательность](diagrams/code/telemetry-poll.puml) · [классы](diagrams/code/telemetry-poll-classes.puml)
 
-[Просмотр видеопотока (PlantUML)](diagrams/code/video-view.puml)
+Просмотр видеопотока: [последовательность](diagrams/code/video-view.puml) · [классы](diagrams/code/video-classes.puml)
 
-[Выполнение сценария по измерению (PlantUML)](diagrams/code/scenario-execution.puml)
+Выполнение сценария по измерению: [последовательность](diagrams/code/scenario-execution.puml) · [классы](diagrams/code/scenarios-classes.puml)
 
 # Задание 3. Разработка ER-диаграммы
 

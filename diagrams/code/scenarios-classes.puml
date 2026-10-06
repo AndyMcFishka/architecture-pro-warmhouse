@@ -1,0 +1,99 @@
+@startuml
+title Warmhouse — классы сценариев
+hide empty members
+skinparam classAttributeIconSize 0
+class ScenarioApi {
+  +create(rule: Rule): ID
+  +update(rule: Rule): void
+  +setEnabled(ruleId: ID, enabled: Boolean): void
+  +listRuns(ruleId: ID): List<Run>
+}
+class RuleEvaluator {
+  +interval: Duration
+  +tick(): void
+}
+class TelemetryClient {
+  +latest(sensorId: ID, metric: String): Reading?
+}
+class CommandClient {
+  +execute(run: Run): CommandResult
+}
+class ScenarioStore {
+  +saveRule(rule: Rule): void
+  +enabledRules(): List<Rule>
+  +markFalse(ruleId: ID): void
+  +startIfRising(ruleId: ID): Run?
+  +pendingRuns(): List<Run>
+  +saveResult(runId: UUID, result: CommandResult): void
+  +listRuns(ruleId: ID): List<Run>
+}
+class Rule {
+  +id: ID
+  +enabled: Boolean
+  +sensorId: ID
+  +metric: String
+  +operator: Comparison
+  +threshold: Decimal
+  +unit: String
+  +maxAge: Duration
+  +action: Action
+  +targetDeviceId: ID
+  +previousMatch: Boolean
+}
+class Run {
+  +id: UUID
+  +ruleId: ID
+  +action: Action
+  +targetDeviceId: ID
+  +commandId: ID?
+  +status: String
+}
+class Reading {
+  +value: Decimal
+  +unit: String
+  +measuredAt: DateTime
+}
+class CommandResult {
+  +commandId: ID?
+  +status: String
+}
+enum Action {
+  HEATING_ON
+  HEATING_OFF
+  LIGHT_ON
+  LIGHT_OFF
+  GATE_LOCK
+  GATE_UNLOCK
+}
+enum Comparison {
+  LESS_THAN
+  GREATER_THAN
+}
+ScenarioApi --> ScenarioStore
+RuleEvaluator --> ScenarioStore
+RuleEvaluator --> TelemetryClient
+RuleEvaluator --> CommandClient
+ScenarioStore ..> Rule
+ScenarioStore ..> Run
+Rule "1" -- "0..*" Run : запуски
+Rule ..> Action
+Rule ..> Comparison
+TelemetryClient ..> Reading
+CommandClient ..> CommandResult
+CommandClient ..> Run
+note bottom of ScenarioStore
+  startIfRising атомарно меняет previousMatch и сохраняет запуск.
+  Run хранит снимок действия и устройства, его ID — ключ повтора.
+  После сбоя используется тот же запуск, без нового ключа.
+end note
+note bottom of RuleEvaluator
+  Нет свежего измерения — пропуск без смены previousMatch.
+  Одно условие — одна команда; запуск при false → true.
+  Новое включённое правило начинает с previousMatch = false.
+end note
+note bottom of CommandClient
+  Соответствие Action → сервис и запрос жёстко задано в коде.
+  Адреса сервисов — в настройках. Каталогов действий нет.
+  Таймаут — UNKNOWN, не подтверждение выполнения.
+end note
+@enduml

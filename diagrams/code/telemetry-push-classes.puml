@@ -1,0 +1,68 @@
+@startuml
+title Warmhouse — классы телеметрии: приём новых измерений
+hide empty members
+skinparam classAttributeIconSize 0
+class TelemetryApi {
+  +postMeasurement(measurement: Measurement): SaveResult
+  +getLatest(deviceId: ID, metric: String): Measurement?
+  +getHistory(deviceId: ID, from: DateTime, to: DateTime): List<Measurement>
+  +getTemperatureById(deviceId: ID): TemperatureResponse
+  +getTemperatureByLocation(location: String): TemperatureResponse
+}
+enum SaveResult {
+  SAVED
+  DUPLICATE
+}
+class Measurement {
+  +id: UUID
+  +deviceId: ID
+  +metric: String
+  +value: Decimal
+  +unit: String
+  +measuredAt: DateTime
+  +receivedAt: DateTime
+}
+class DeviceSpec {
+  +id: ID
+  +type: String
+  +metric: String
+  +unit: String
+  +connectionMode: String
+}
+class MeasurementProcessor {
+  +accept(measurement: Measurement): SaveResult
+}
+class MeasurementStore {
+  +saveUnique(measurement: Measurement): SaveResult
+  +latest(deviceId: ID, metric: String): Measurement?
+  +history(deviceId: ID, from: DateTime, to: DateTime): List<Measurement>
+}
+class MonolithClient {
+  +getDevice(deviceId: ID): DeviceSpec
+  +findByLocation(location: String): DeviceSpec
+  +listLegacySensors(): List<DeviceSpec>
+  +pollLegacySensor(deviceId: ID): Measurement
+}
+MeasurementProcessor --> MonolithClient : проверяет датчик
+MeasurementProcessor --> MeasurementStore : сохраняет
+MeasurementProcessor ..> Measurement
+MeasurementStore ..> Measurement
+MonolithClient ..> DeviceSpec
+note bottom of MeasurementStore
+  Уникальны deviceId + id измерения.
+  Идентичный повтор не создаёт запись;
+  другой payload с тем же ID — конфликт.
+  Последнее значение выбирается по measuredAt.
+end note
+
+TelemetryApi --> MeasurementProcessor : приём
+TelemetryApi --> MeasurementStore : чтение
+TelemetryApi --> MonolithClient : поиск по локации
+TelemetryApi ..> SaveResult
+note top of TelemetryApi
+  Датчик отправляет измерение через прокси.
+  Подтверждение — после сохранения.
+  Ошибки валидации, конфликты и сбои возвращаются отдельно.
+  TemperatureResponse сохраняет контракт старого клиента монолита.
+end note
+@enduml

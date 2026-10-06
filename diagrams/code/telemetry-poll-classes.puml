@@ -1,0 +1,69 @@
+@startuml
+title Warmhouse — классы телеметрии: опрос старых датчиков
+hide empty members
+skinparam classAttributeIconSize 0
+class LegacySensorPoller {
+  +interval: Duration
+  +timeout: Duration
+  +pollOnce(): void
+}
+enum SaveResult {
+  SAVED
+  DUPLICATE
+}
+class Measurement {
+  +id: UUID
+  +deviceId: ID
+  +metric: String
+  +value: Decimal
+  +unit: String
+  +measuredAt: DateTime
+  +receivedAt: DateTime
+}
+class DeviceSpec {
+  +id: ID
+  +type: String
+  +metric: String
+  +unit: String
+  +connectionMode: String
+}
+class MeasurementProcessor {
+  +accept(measurement: Measurement): SaveResult
+}
+class MeasurementStore {
+  +saveUnique(measurement: Measurement): SaveResult
+  +latest(deviceId: ID, metric: String): Measurement?
+  +history(deviceId: ID, from: DateTime, to: DateTime): List<Measurement>
+}
+class MonolithClient {
+  +getDevice(deviceId: ID): DeviceSpec
+  +findByLocation(location: String): DeviceSpec
+  +listLegacySensors(): List<DeviceSpec>
+  +pollLegacySensor(deviceId: ID): Measurement
+}
+MeasurementProcessor --> MonolithClient : проверяет датчик
+MeasurementProcessor --> MeasurementStore : сохраняет
+MeasurementProcessor ..> Measurement
+MeasurementStore ..> Measurement
+MonolithClient ..> DeviceSpec
+note bottom of MeasurementStore
+  Уникальны deviceId + id измерения.
+  Идентичный повтор не создаёт запись;
+  другой payload с тем же ID — конфликт.
+  Последнее значение выбирается по measuredAt.
+end note
+
+LegacySensorPoller --> MonolithClient : список и опрос
+LegacySensorPoller --> MeasurementProcessor : передаёт измерение
+LegacySensorPoller ..> Measurement
+note top of LegacySensorPoller
+  Опрашивает только старые датчики через монолит.
+  ID опроса сохраняется при повторе записи результата.
+  Ошибка одного датчика не прерывает цикл.
+  Нет времени датчика — measuredAt равен времени успешного наблюдения.
+end note
+note bottom of MonolithClient
+  Внутренний API монолита обращается к оборудованию напрямую.
+  Общие классы телеметрии совпадают со схемой приёма новых измерений.
+end note
+@enduml
