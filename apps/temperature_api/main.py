@@ -14,13 +14,14 @@ values_lock = Lock()
 
 
 def next_temperature():
-    """Generate a float in [-273, 1000] different from the previous reading."""
+    """Generate a float in [-273, 5500] different from the previous reading."""
     # ponytail: one process and an in-memory history; share state if adding workers.
     global last_value
     with values_lock:
-        value = random.uniform(-273, 1000)
+        # 5500 °C is the Sun's surface temperature ;)
+        value = random.uniform(-273, 5500)
         while value == last_value:
-            value = random.uniform(-273, 1000)
+            value = random.uniform(-273, 5500)
         last_value = value
         return value
 

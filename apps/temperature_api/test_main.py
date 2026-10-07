@@ -18,13 +18,13 @@ class TemperatureTest(unittest.TestCase):
     def test_repeated_readings(self):
         """Skip repeated readings across lookup routes and different sensors."""
         client = app.test_client()
-        with patch("main.random.uniform", side_effect=[21.5, 21.5, -273.0, -273.0, 1000.0]) as rng:
+        with patch("main.random.uniform", side_effect=[21.5, 21.5, -273.0, -273.0, 5500.0]) as rng:
             first = client.get("/temperature/1").get_json()["value"]
             self.assertEqual(client.get("/health").get_json(), {"status": "ok"})
             rng.assert_called_once()
             second = client.get("/temperature?location=Living%20Room").get_json()["value"]
             other = client.get("/temperature/2").get_json()["value"]
-        self.assertEqual((first, second, other), (21.5, -273.0, 1000.0))
+        self.assertEqual((first, second, other), (21.5, -273.0, 5500.0))
         self.assertNotEqual(first, second)
         self.assertEqual(rng.call_count, 5)
 
@@ -36,10 +36,10 @@ class TemperatureTest(unittest.TestCase):
             paths = [f"/temperature/{sensor_id}",
                      "/temperature?location=" + location.replace(" ", "%20")]
             for path in paths:
-                for bound in [-273.0, 1000.0]:
+                for bound in [-273.0, 5500.0]:
                     with patch("main.random.uniform", return_value=bound) as random_value:
                         response = client.get(path)
-                    random_value.assert_called_once_with(-273, 1000)
+                    random_value.assert_called_once_with(-273, 5500)
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(response.headers["Cache-Control"], "no-store")
                     data = response.get_json()
@@ -59,7 +59,7 @@ class TemperatureTest(unittest.TestCase):
             data = response.get_json()
             self.assertEqual((data["sensor_id"], data["location"]), (sensor_id, location))
             self.assertIsInstance(data["value"], float)
-            self.assertTrue(-273 <= data["value"] <= 1000)
+            self.assertTrue(-273 <= data["value"] <= 5500)
         for path, status in [("/missing", 404), ("/temperature/abc", 400),
                              ("/temperature/", 404), ("/temperature?sensorId=-1", 400)]:
             response = client.get(path)
