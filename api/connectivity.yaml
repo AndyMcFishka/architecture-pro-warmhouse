@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Device Connectivity
+  version: 1.0.0
+  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
+    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://connectivity:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /internal/v1/connections/check:
+    post:
+      summary: Check connectivity before registration
+      operationId: post_internal_v1_connections_check
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reachable:
+                    type: boolean
+                    example: true
+                  checked_at:
+                    type: string
+                    example: '2026-10-07T09:00:00Z'
+                    format: date-time
+                required:
+                - reachable
+                - checked_at
+                additionalProperties: false
+              example:
+                reachable: true
+                checked_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: Does not register a device. An unsupported type/model returns 422; unavailable equipment
+        returns 502/504. LEGACY connections use the monolith adapter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCheck'
+            example:
+              type: heating
+              connection_mode: HTTPS
+              connection_settings:
+                model: demo-v1
+                address: https://device.example.test
+                credential_ref: device-secret-1
+  /internal/v1/commands:
+    post:
+      summary: Send a command to a device
+      operationId: post_internal_v1_commands
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+              example:
+                command_service: heating
+                command_id: 123e4567-e89b-42d3-a456-426614174000
+                device_id: 1
+                status: PENDING
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Validates that the operation matches the device type. Stores a unique attempt identified
+        by command_service + command_id before delivery. Repeating the same parameters returns the stored
+        status; different parameters return 409. An uncertain outcome returns UNKNOWN, without resending
+        the physical command.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryInput'
+            example:
+              command_service: heating
+              command_id: 123e4567-e89b-42d3-a456-426614174000
+              device_id: 1
+              operation: SET_HEATING
+              parameters:
+                enabled: true
+  /internal/v1/commands/{commandService}/{commandId}:
+    get:
+      summary: Read a delivery attempt
+      operationId: get_internal_v1_commands_commandService_commandId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+              example:
+                command_service: heating
+                command_id: 123e4567-e89b-42d3-a456-426614174000
+                device_id: 1
+                status: PENDING
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      parameters:
+      - name: commandService
+        in: path
+        required: true
+        schema:
+          type: string
+          example: heating
+          enum:
+          - heating
+          - lighting
+          - gates
+      - name: commandId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+  /internal/v1/devices/{deviceId}/state:
+    get:
+      summary: Read the actual device state
+      operationId: get_internal_v1_devices_deviceId_state
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceState'
+              example:
+                device_id: 1
+                kind: HEATING
+                state: 'ON'
+                observed_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    DeliveryInput:
+      oneOf:
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: heating
+            enum:
+            - heating
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_HEATING
+            enum:
+            - SET_HEATING
+          parameters:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                example: true
+            required:
+            - enabled
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: lighting
+            enum:
+            - lighting
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_LIGHT
+            enum:
+            - SET_LIGHT
+          parameters:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                example: true
+            required:
+            - enabled
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: gates
+            enum:
+            - gates
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_GATE_LOCK
+            enum:
+            - SET_GATE_LOCK
+          parameters:
+            type: object
+            properties:
+              locked:
+                type: boolean
+                example: true
+            required:
+            - locked
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+    Delivery:
+      type: object
+      properties:
+        command_service:
+          type: string
+          example: heating
+          enum:
+          - heating
+          - lighting
+          - gates
+        command_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        status:
+          type: string
+          example: PENDING
+          enum:
+          - PENDING
+          - ACCEPTED
+          - SUCCEEDED
+          - FAILED
+          - UNKNOWN
+          description: ACCEPTED means the device accepted the command; SUCCEEDED means execution was confirmed;
+            UNKNOWN means the outcome is unknown. Command status does not replace reading the device state.
+        updated_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - command_service
+      - command_id
+      - device_id
+      - status
+      - updated_at
+      additionalProperties: false
+    DeviceState:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        kind:
+          type: string
+          example: HEATING
+          enum:
+          - HEATING
+          - LIGHT
+          - GATE
+        state:
+          type: string
+          example: 'ON'
+          enum:
+          - 'ON'
+          - 'OFF'
+          - LOCKED
+          - UNLOCKED
+        observed_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - kind
+      - state
+      - observed_at
+      additionalProperties: false
+      description: 'HEATING/LIGHT: ON or OFF; GATE: LOCKED or UNLOCKED. Returns confirmed observations
+        only; a failed state read returns an HTTP error.'
+      oneOf:
+      - properties:
+          kind:
+            enum:
+            - HEATING
+            - LIGHT
+          state:
+            enum:
+            - 'ON'
+            - 'OFF'
+      - properties:
+          kind:
+            enum:
+            - GATE
+          state:
+            enum:
+            - LOCKED
+            - UNLOCKED
+    ConnectionCheck:
+      type: object
+      properties:
+        type:
+          type: string
+          example: heating
+        connection_mode:
+          type: string
+          example: HTTPS
+          enum:
+          - HTTPS
+          - LEGACY
+        connection_settings:
+          type: object
+          properties:
+            model:
+              type: string
+              example: demo-v1
+            address:
+              type: string
+              example: https://device.example.test
+              format: uri
+            credential_ref:
+              type: string
+              example: device-secret-1
+          required:
+          - model
+          - address
+          additionalProperties: false
+          description: Address on an allowed device network; new devices use HTTPS. credential_ref is
+            a server-side reference to a secret, not a password. Arbitrary external addresses are not
+            allowed.
+      required:
+      - type
+      - connection_mode
+      - connection_settings
+      additionalProperties: false

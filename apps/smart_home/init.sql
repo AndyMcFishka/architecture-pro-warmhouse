@@ -1,8 +1,4 @@
--- Create the database if it doesn't exist
-CREATE DATABASE smarthome;
-
--- Connect to the database
-\c smarthome;
+-- Docker creates and selects the database using POSTGRES_DB.
 
 -- Create the sensors table
 CREATE TABLE IF NOT EXISTS sensors (

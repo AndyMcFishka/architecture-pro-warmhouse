@@ -1,0 +1,606 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Scenarios
+  version: 1.0.0
+  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
+    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://scenarios:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /api/v1/scenarios/rules:
+    post:
+      summary: Create a rule
+      operationId: post_api_v1_scenarios_rules
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+              example:
+                enabled: true
+                sensor_id: 1
+                metric: temperature
+                comparison: LT
+                threshold: 18
+                unit: °C
+                max_age_seconds: 60
+                action: HEATING_ON
+                target_device_id: 2
+                id: 123e4567-e89b-42d3-a456-426614174000
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: One measurement condition triggers one fixed action. Validates the metric, unit and
+        target device type. A new rule starts with previous_match=false. A false-to-true transition triggers
+        a run; stale measurements are skipped without changing the previous condition state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleInput'
+            example:
+              enabled: true
+              sensor_id: 1
+              metric: temperature
+              comparison: LT
+              threshold: 18
+              unit: °C
+              max_age_seconds: 60
+              action: HEATING_ON
+              target_device_id: 2
+    get:
+      summary: List rules
+      operationId: get_api_v1_scenarios_rules
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+              example:
+              - enabled: true
+                sensor_id: 1
+                metric: temperature
+                comparison: LT
+                threshold: 18
+                unit: °C
+                max_age_seconds: 60
+                action: HEATING_ON
+                target_device_id: 2
+                id: 123e4567-e89b-42d3-a456-426614174000
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+  /api/v1/scenarios/rules/{ruleId}:
+    get:
+      summary: Read a rule
+      operationId: get_api_v1_scenarios_rules_ruleId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+              example:
+                enabled: true
+                sensor_id: 1
+                metric: temperature
+                comparison: LT
+                threshold: 18
+                unit: °C
+                max_age_seconds: 60
+                action: HEATING_ON
+                target_device_id: 2
+                id: 123e4567-e89b-42d3-a456-426614174000
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+    put:
+      summary: Replace a rule
+      operationId: put_api_v1_scenarios_rules_ruleId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+              example:
+                enabled: true
+                sensor_id: 1
+                metric: temperature
+                comparison: LT
+                threshold: 18
+                unit: °C
+                max_age_seconds: 60
+                action: HEATING_ON
+                target_device_id: 2
+                id: 123e4567-e89b-42d3-a456-426614174000
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Replaces all fields. Repeating the same values does not change previous_match or create
+        a new run. When the rule changes, previous_match is reset to false; comparing fields, updating
+        the rule and resetting the condition are atomic with respect to condition evaluation. Existing
+        runs retain their original action snapshots.
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleInput'
+            example:
+              enabled: true
+              sensor_id: 1
+              metric: temperature
+              comparison: LT
+              threshold: 18
+              unit: °C
+              max_age_seconds: 60
+              action: HEATING_ON
+              target_device_id: 2
+  /api/v1/scenarios/rules/{ruleId}/enabled:
+    patch:
+      summary: Enable or disable a rule
+      operationId: patch_api_v1_scenarios_rules_ruleId_enabled
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+              example:
+                enabled: true
+                sensor_id: 1
+                metric: temperature
+                comparison: LT
+                threshold: 18
+                unit: °C
+                max_age_seconds: 60
+                action: HEATING_ON
+                target_device_id: 2
+                id: 123e4567-e89b-42d3-a456-426614174000
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Changing a disabled rule to enabled sets previous_match=false. Enabling an already
+        enabled rule does not reset the condition. Disabling a rule does not cancel commands already sent.
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  example: true
+              required:
+              - enabled
+              additionalProperties: false
+            example:
+              enabled: true
+  /api/v1/scenarios/rules/{ruleId}/runs:
+    get:
+      summary: List scenario runs
+      operationId: get_api_v1_scenarios_rules_ruleId_runs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Run'
+              example:
+              - id: 123e4567-e89b-42d3-a456-426614174000
+                rule_id: 123e4567-e89b-42d3-a456-426614174000
+                action: HEATING_ON
+                target_device_id: 2
+                command_service: heating
+                command_id: 123e4567-e89b-42d3-a456-426614174000
+                status: PENDING
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: 'Newest first: created_at DESC, id DESC. The run ID is used as the Idempotency-Key
+        for the domain service. Commands and service mappings are defined in code; there are no action
+        catalogs.'
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          example: 100
+          default: 100
+          maximum: 1000
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    RuleInput:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          example: true
+        sensor_id:
+          type: integer
+          minimum: 1
+          example: 1
+        metric:
+          type: string
+          example: temperature
+        comparison:
+          type: string
+          example: LT
+          enum:
+          - LT
+          - GT
+        threshold:
+          type: number
+          example: 18
+        unit:
+          type: string
+          example: °C
+        max_age_seconds:
+          type: integer
+          minimum: 1
+          example: 60
+        action:
+          type: string
+          example: HEATING_ON
+          enum:
+          - HEATING_ON
+          - HEATING_OFF
+          - LIGHT_ON
+          - LIGHT_OFF
+          - GATE_LOCK
+          - GATE_UNLOCK
+        target_device_id:
+          type: integer
+          minimum: 1
+          example: 2
+      required:
+      - enabled
+      - sensor_id
+      - metric
+      - comparison
+      - threshold
+      - unit
+      - max_age_seconds
+      - action
+      - target_device_id
+      additionalProperties: false
+    Rule:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          example: true
+        sensor_id:
+          type: integer
+          minimum: 1
+          example: 1
+        metric:
+          type: string
+          example: temperature
+        comparison:
+          type: string
+          example: LT
+          enum:
+          - LT
+          - GT
+        threshold:
+          type: number
+          example: 18
+        unit:
+          type: string
+          example: °C
+        max_age_seconds:
+          type: integer
+          minimum: 1
+          example: 60
+        action:
+          type: string
+          example: HEATING_ON
+          enum:
+          - HEATING_ON
+          - HEATING_OFF
+          - LIGHT_ON
+          - LIGHT_OFF
+          - GATE_LOCK
+          - GATE_UNLOCK
+        target_device_id:
+          type: integer
+          minimum: 1
+          example: 2
+        id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        created_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        updated_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - enabled
+      - sensor_id
+      - metric
+      - comparison
+      - threshold
+      - unit
+      - max_age_seconds
+      - action
+      - target_device_id
+      - id
+      - created_at
+      - updated_at
+      additionalProperties: false
+    Run:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        rule_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        action:
+          type: string
+          example: HEATING_ON
+          enum:
+          - HEATING_ON
+          - HEATING_OFF
+          - LIGHT_ON
+          - LIGHT_OFF
+          - GATE_LOCK
+          - GATE_UNLOCK
+        target_device_id:
+          type: integer
+          minimum: 1
+          example: 2
+        command_service:
+          type: string
+          example: heating
+          enum:
+          - heating
+          - lighting
+          - gates
+        command_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          example: PENDING
+          enum:
+          - PENDING
+          - ACCEPTED
+          - SUCCEEDED
+          - FAILED
+          - UNKNOWN
+          description: ACCEPTED means the device accepted the command; SUCCEEDED means execution was confirmed;
+            UNKNOWN means the outcome is unknown. Command status does not replace reading the device state.
+        created_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        updated_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - id
+      - rule_id
+      - action
+      - target_device_id
+      - command_service
+      - command_id
+      - status
+      - created_at
+      - updated_at
+      additionalProperties: false

@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Video
+  version: 1.0.0
+  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
+    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://video:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /api/v1/video/cameras/{deviceId}/stream-link:
+    get:
+      summary: Get a temporary stream link
+      operationId: get_api_v1_video_cameras_deviceId_stream_link
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamLink'
+              example:
+                url: https://camera.example.test/live?token=demo
+                expires_at: '2026-10-07T09:00:00Z'
+          headers:
+            Cache-Control:
+              description: Do not cache the temporary link
+              schema:
+                type: string
+                example: no-store
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: Reads camera settings from the monolith and requests a link directly from the camera.
+        The browser plays a compatible stream directly. Permanent camera credentials are not returned.
+        Request a new link after expiry.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    StreamLink:
+      type: object
+      properties:
+        url:
+          type: string
+          example: https://camera.example.test/live?token=demo
+          format: uri
+        expires_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - url
+      - expires_at
+      additionalProperties: false

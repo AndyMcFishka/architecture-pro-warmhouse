@@ -110,63 +110,30 @@
 
 ### 2. Документация API
 
-Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+Спецификации OpenAPI 3.0.3 для MVP (проектные контракты):
 
-# Задание 5. Работа с docker и docker-compose
+- [Монолит](api/monolith.yaml)
+- [Взаимодействие с устройствами](api/connectivity.yaml)
+- [Телеметрия](api/telemetry.yaml)
+- [Отопление](api/heating.yaml)
+- [Освещение](api/lighting.yaml)
+- [Ворота](api/gates.yaml)
+- [Видеонаблюдение](api/video.yaml)
+- [Сценарии](api/scenarios.yaml)
 
-Перейдите в apps.
+# Задание 5. Работа с Docker и Docker Compose
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
+[Temperature API на Python и Flask](apps/temperature_api/main.py), образ `python:3.13-slim`. Каждый запрос генерирует температуру с плавающей точкой от −273 до 1000 °C. Два последовательных сгенерированных показания различаются независимо от датчика. Предыдущее значение хранится в одной глобальной переменной под локом и сбрасывается при перезапуске.
 
-Вам нужно:
+[Docker Compose](apps/docker-compose.yml) запускает монолит, temperature-api и PostgreSQL. База инициализируется через [init.sql](apps/smart_home/init.sql), данные сохраняются в volume.
 
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
+Запуск из корня репозитория:
 
-Locations - название комнаты, sensorId - идентификатор названия комнаты
-
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
-
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
+```bash
+docker compose -f apps/docker-compose.yml up --build -d --wait
 ```
 
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
-
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
-
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
-
+Монолит доступен на порту 8080, temperature-api — на 8081. [Инструкция и проверка](apps/README.md).
 
 # **Задание 6. Разработка MVP**
 

@@ -1,0 +1,314 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Heating
+  version: 1.0.0
+  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
+    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://heating:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /api/v1/heating/devices/{deviceId}/commands:
+    post:
+      summary: Set device state
+      operationId: post_api_v1_heating_devices_deviceId_commands
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Command'
+              example:
+                id: 123e4567-e89b-42d3-a456-426614174000
+                device_id: 1
+                idempotency_key: 123e4567-e89b-42d3-a456-426614174000
+                enabled: true
+                status: PENDING
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: The key is unique within the service. The command is stored before delivery. The same
+        key and parameters return the same command; different parameters return 409. A delivery timeout
+        returns UNKNOWN. Reuse the same key if the HTTP response is lost. The physical command is not
+        automatically resent.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  example: true
+              required:
+              - enabled
+              additionalProperties: false
+            example:
+              enabled: true
+  /api/v1/heating/commands/{commandId}:
+    get:
+      summary: Read the stored command result
+      operationId: get_api_v1_heating_commands_commandId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Command'
+              example:
+                id: 123e4567-e89b-42d3-a456-426614174000
+                device_id: 1
+                idempotency_key: 123e4567-e89b-42d3-a456-426614174000
+                enabled: true
+                status: PENDING
+                created_at: '2026-10-07T09:00:00Z'
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      parameters:
+      - name: commandId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+  /api/v1/heating/devices/{deviceId}/state:
+    get:
+      summary: Read the actual device state
+      operationId: get_api_v1_heating_devices_deviceId_state
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceState'
+              example:
+                device_id: 1
+                kind: HEATING
+                state: 'ON'
+                observed_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    Command:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        idempotency_key:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        enabled:
+          type: boolean
+          example: true
+        status:
+          type: string
+          example: PENDING
+          enum:
+          - PENDING
+          - ACCEPTED
+          - SUCCEEDED
+          - FAILED
+          - UNKNOWN
+          description: ACCEPTED means the device accepted the command; SUCCEEDED means execution was confirmed;
+            UNKNOWN means the outcome is unknown. Command status does not replace reading the device state.
+        created_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        updated_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - id
+      - device_id
+      - idempotency_key
+      - enabled
+      - status
+      - created_at
+      - updated_at
+      additionalProperties: false
+    DeviceState:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        kind:
+          type: string
+          example: HEATING
+          enum:
+          - HEATING
+        state:
+          type: string
+          example: 'ON'
+          enum:
+          - 'ON'
+          - 'OFF'
+        observed_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - kind
+      - state
+      - observed_at
+      additionalProperties: false
+      description: 'HEATING/LIGHT: ON or OFF; GATE: LOCKED or UNLOCKED. Returns confirmed observations
+        only; a failed state read returns an HTTP error.'

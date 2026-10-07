@@ -1,0 +1,1683 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Monolith
+  version: 1.0.0
+  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
+    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://monolith:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /api/v1/sensors:
+    get:
+      summary: List sensors (existing API)
+      operationId: get_api_v1_sensors
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sensor'
+              example:
+              - id: 1
+                name: Bedroom sensor
+                type: temperature
+                location: Bedroom
+                value: 21.5
+                unit: °C
+                status: active
+                last_updated: '2026-10-07T09:00:00Z'
+                created_at: '2026-10-07T09:00:00Z'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      description: Existing endpoint. Temperature is refreshed through the HTTP client. If that call fails,
+        stored data is returned.
+    post:
+      summary: Create a sensor (existing API)
+      operationId: post_api_v1_sensors
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                location: Bedroom
+                value: 21.5
+                unit: °C
+                status: active
+                last_updated: '2026-10-07T09:00:00Z'
+                created_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorCreate'
+            example:
+              name: Bedroom sensor
+              type: temperature
+              location: Bedroom
+              unit: °C
+  /api/v1/sensors/{id}:
+    get:
+      summary: Read a sensor (existing API)
+      operationId: get_api_v1_sensors_id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                location: Bedroom
+                value: 21.5
+                unit: °C
+                status: active
+                last_updated: '2026-10-07T09:00:00Z'
+                created_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+    put:
+      summary: Update a sensor (existing API)
+      operationId: put_api_v1_sensors_id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sensor'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                location: Bedroom
+                value: 21.5
+                unit: °C
+                status: active
+                last_updated: '2026-10-07T09:00:00Z'
+                created_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      description: The existing PUT endpoint accepts partial updates.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SensorUpdate'
+            example:
+              name: Bedroom sensor
+              type: temperature
+              location: Bedroom
+              value: 21.5
+              unit: °C
+              status: active
+    delete:
+      summary: Delete a sensor (existing API)
+      operationId: delete_api_v1_sensors_id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Sensor deleted successfully
+                required:
+                - message
+                additionalProperties: false
+              example:
+                message: Sensor deleted successfully
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+  /api/v1/sensors/{id}/value:
+    patch:
+      summary: Update a sensor value (existing API)
+      operationId: patch_api_v1_sensors_id_value
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Sensor value updated successfully
+                required:
+                - message
+                additionalProperties: false
+              example:
+                message: Sensor value updated successfully
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      description: 'Current handler limitation: a zero value is rejected as missing.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: number
+                  example: 21.5
+                  not:
+                    enum:
+                    - 0
+                status:
+                  type: string
+                  example: active
+              required:
+              - value
+              - status
+              additionalProperties: false
+            example:
+              value: 21.5
+              status: active
+  /api/v1/sensors/temperature/{location}:
+    get:
+      summary: Read temperature by location (existing API)
+      operationId: get_api_v1_sensors_temperature_location
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: number
+                    example: 21.5
+                  unit:
+                    type: string
+                    example: °C
+                  timestamp:
+                    type: string
+                    example: '2026-10-07T09:00:00Z'
+                    format: date-time
+                  location:
+                    type: string
+                    example: Bedroom
+                  status:
+                    type: string
+                    example: active
+                    enum:
+                    - active
+                    - stale
+                  description:
+                    type: string
+                    example: Latest stored measurement
+                required:
+                - value
+                - unit
+                - timestamp
+                - location
+                - status
+                - description
+                additionalProperties: false
+              example:
+                value: 21.5
+                unit: °C
+                timestamp: '2026-10-07T09:00:00Z'
+                location: Bedroom
+                status: active
+                description: Latest stored measurement
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+      parameters:
+      - name: location
+        in: path
+        required: true
+        schema:
+          type: string
+          example: Bedroom
+  /api/v1/devices:
+    post:
+      summary: Register a device (MVP extension)
+      operationId: post_api_v1_devices
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: Stored in the existing sensors registry. type must be a supported type; kind/metric/unit
+        are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to
+        NONE. Before saving, the monolith checks the connection through connectivity. Connection settings
+        and secrets are not included in the public response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+            example:
+              name: Bedroom sensor
+              type: temperature
+              location: Bedroom
+              connection_mode: LEGACY
+              telemetry_mode: PULL
+              connection_settings:
+                model: demo-v1
+                address: https://device.example.test
+                credential_ref: device-secret-1
+  /api/v1/devices/{deviceId}:
+    put:
+      summary: Update device settings (MVP extension)
+      operationId: put_api_v1_devices_deviceId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: 'Replaces all settings. When the connection changes, checks connectivity through the
+        connectivity service. Applies the same compatibility checks as registration. If credential_ref
+        is omitted, the existing secret reference is preserved: reading and saving the public form does
+        not remove credentials.'
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+            example:
+              name: Bedroom sensor
+              type: temperature
+              location: Bedroom
+              connection_mode: LEGACY
+              telemetry_mode: PULL
+              connection_settings:
+                model: demo-v1
+                address: https://device.example.test
+                credential_ref: device-secret-1
+    get:
+      summary: Read device settings without secrets
+      operationId: get_api_v1_devices_deviceId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSettings'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+                connection_settings:
+                  model: demo-v1
+                  address: https://device.example.test
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Data for the settings form. Does not poll equipment. Returns the model and connection
+        address without passwords, tokens or credential_ref. The address must not contain embedded credentials.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+  /internal/v1/devices:
+    get:
+      summary: Read the registry without polling equipment
+      operationId: get_internal_v1_devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternalDevice'
+              example:
+              - id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+                connection_settings:
+                  model: demo-v1
+                  address: https://device.example.test
+                  credential_ref: device-secret-1
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Filters are combined with AND. Internal network only. Reads the registry directly without
+        calling telemetry.
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          example: SENSOR
+          enum:
+          - SENSOR
+          - HEATING
+          - LIGHT
+          - GATE
+          - CAMERA
+      - name: connection_mode
+        in: query
+        required: false
+        schema:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+          - HTTPS
+      - name: telemetry_mode
+        in: query
+        required: false
+        schema:
+          type: string
+          example: PULL
+          enum:
+          - PULL
+          - PUSH
+          - NONE
+      - name: location
+        in: query
+        required: false
+        schema:
+          type: string
+          example: Bedroom
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          example: temperature
+  /internal/v1/devices/{deviceId}:
+    get:
+      summary: Read device settings
+      operationId: get_internal_v1_devices_deviceId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalDevice'
+              example:
+                id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+                connection_settings:
+                  model: demo-v1
+                  address: https://device.example.test
+                  credential_ref: device-secret-1
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Internal network only. Does not call other services.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+  /internal/v1/legacy/devices/{deviceId}/measurement:
+    get:
+      summary: Poll a legacy sensor directly
+      operationId: get_internal_v1_legacy_devices_deviceId_measurement
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measurement'
+              example:
+                device_id: 1
+                measurement_id: 123e4567-e89b-42d3-a456-426614174000
+                metric: temperature
+                value: 21.5
+                unit: °C
+                measured_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: Does not call telemetry. Creates a measurement_id for each successful poll; telemetry
+        reuses that ID when retrying persistence. measured_at is the sensor timestamp or the time of the
+        successful observation.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+  /internal/v1/legacy/connections/check:
+    post:
+      summary: Check a legacy connection directly
+      operationId: post_internal_v1_legacy_connections_check
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reachable:
+                    type: boolean
+                    example: true
+                  checked_at:
+                    type: string
+                    example: '2026-10-07T09:00:00Z'
+                    format: date-time
+                required:
+                - reachable
+                - checked_at
+                additionalProperties: false
+              example:
+                reachable: true
+                checked_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: LEGACY only. Calls legacy equipment directly without calling back into connectivity.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCheck'
+            example:
+              type: heating
+              connection_mode: LEGACY
+              connection_settings:
+                model: demo-v1
+                address: https://device.example.test
+                credential_ref: device-secret-1
+  /internal/v1/legacy/commands:
+    post:
+      summary: Send a command to legacy equipment
+      operationId: post_internal_v1_legacy_commands
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+              example:
+                command_service: heating
+                command_id: 123e4567-e89b-42d3-a456-426614174000
+                device_id: 1
+                status: PENDING
+                updated_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Called only by connectivity, which stores duplicate-delivery protection. The monolith
+        calls legacy equipment directly, not connectivity. An uncertain outcome returns UNKNOWN; the caller
+        must not resend the physical command.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryInput'
+            example:
+              command_service: heating
+              command_id: 123e4567-e89b-42d3-a456-426614174000
+              device_id: 1
+              operation: SET_HEATING
+              parameters:
+                enabled: true
+  /internal/v1/legacy/devices/{deviceId}/state:
+    get:
+      summary: Read the state of legacy equipment
+      operationId: get_internal_v1_legacy_devices_deviceId_state
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceState'
+              example:
+                device_id: 1
+                kind: HEATING
+                state: 'ON'
+                observed_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '502':
+          description: Invalid response from equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid response from equipment
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '504':
+          description: Device request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Device request timed out
+      description: Calls equipment directly without calling connectivity.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    Sensor:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          example: 1
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        location:
+          type: string
+          example: Bedroom
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        status:
+          type: string
+          example: active
+        last_updated:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        created_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - id
+      - name
+      - type
+      - location
+      - value
+      - unit
+      - status
+      - last_updated
+      - created_at
+      additionalProperties: false
+    SensorCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        location:
+          type: string
+          example: Bedroom
+        unit:
+          type: string
+          example: °C
+      required:
+      - name
+      - type
+      - location
+      additionalProperties: false
+    SensorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        location:
+          type: string
+          example: Bedroom
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        status:
+          type: string
+          example: active
+      additionalProperties: false
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          example: 1
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        kind:
+          type: string
+          example: SENSOR
+          enum:
+          - SENSOR
+          - HEATING
+          - LIGHT
+          - GATE
+          - CAMERA
+        location:
+          type: string
+          example: Bedroom
+        connection_mode:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+          - HTTPS
+        telemetry_mode:
+          type: string
+          example: PULL
+          enum:
+          - PULL
+          - PUSH
+          - NONE
+        metric:
+          type: string
+          example: temperature
+        unit:
+          type: string
+          example: °C
+      required:
+      - id
+      - name
+      - type
+      - kind
+      - location
+      - connection_mode
+      - telemetry_mode
+      additionalProperties: false
+    InternalDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          example: 1
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        kind:
+          type: string
+          example: SENSOR
+          enum:
+          - SENSOR
+          - HEATING
+          - LIGHT
+          - GATE
+          - CAMERA
+        location:
+          type: string
+          example: Bedroom
+        connection_mode:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+          - HTTPS
+        telemetry_mode:
+          type: string
+          example: PULL
+          enum:
+          - PULL
+          - PUSH
+          - NONE
+        metric:
+          type: string
+          example: temperature
+        unit:
+          type: string
+          example: °C
+        connection_settings:
+          type: object
+          properties:
+            model:
+              type: string
+              example: demo-v1
+            address:
+              type: string
+              example: https://device.example.test
+              format: uri
+            credential_ref:
+              type: string
+              example: device-secret-1
+          required:
+          - model
+          - address
+          additionalProperties: false
+          description: Address on an allowed device network; new devices use HTTPS. credential_ref is
+            a server-side reference to a secret, not a password. Arbitrary external addresses are not
+            allowed.
+      required:
+      - id
+      - name
+      - type
+      - kind
+      - location
+      - connection_mode
+      - telemetry_mode
+      - connection_settings
+      additionalProperties: false
+    Registration:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        location:
+          type: string
+          example: Bedroom
+        connection_mode:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+          - HTTPS
+        telemetry_mode:
+          type: string
+          example: PULL
+          enum:
+          - PULL
+          - PUSH
+          - NONE
+        connection_settings:
+          type: object
+          properties:
+            model:
+              type: string
+              example: demo-v1
+            address:
+              type: string
+              example: https://device.example.test
+              format: uri
+            credential_ref:
+              type: string
+              example: device-secret-1
+          required:
+          - model
+          - address
+          additionalProperties: false
+          description: Address on an allowed device network; new devices use HTTPS. credential_ref is
+            a server-side reference to a secret, not a password. Arbitrary external addresses are not
+            allowed.
+      required:
+      - name
+      - type
+      - location
+      - connection_mode
+      - telemetry_mode
+      - connection_settings
+      additionalProperties: false
+    Measurement:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        measurement_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        metric:
+          type: string
+          example: temperature
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        measured_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - measurement_id
+      - metric
+      - value
+      - unit
+      - measured_at
+      additionalProperties: false
+    DeliveryInput:
+      oneOf:
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: heating
+            enum:
+            - heating
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_HEATING
+            enum:
+            - SET_HEATING
+          parameters:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                example: true
+            required:
+            - enabled
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: lighting
+            enum:
+            - lighting
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_LIGHT
+            enum:
+            - SET_LIGHT
+          parameters:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                example: true
+            required:
+            - enabled
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+      - type: object
+        properties:
+          command_service:
+            type: string
+            example: gates
+            enum:
+            - gates
+          command_id:
+            type: string
+            example: 123e4567-e89b-42d3-a456-426614174000
+            format: uuid
+          device_id:
+            type: integer
+            minimum: 1
+            example: 1
+          operation:
+            type: string
+            example: SET_GATE_LOCK
+            enum:
+            - SET_GATE_LOCK
+          parameters:
+            type: object
+            properties:
+              locked:
+                type: boolean
+                example: true
+            required:
+            - locked
+            additionalProperties: false
+        required:
+        - command_service
+        - command_id
+        - device_id
+        - operation
+        - parameters
+        additionalProperties: false
+    Delivery:
+      type: object
+      properties:
+        command_service:
+          type: string
+          example: heating
+          enum:
+          - heating
+          - lighting
+          - gates
+        command_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        status:
+          type: string
+          example: PENDING
+          enum:
+          - PENDING
+          - ACCEPTED
+          - SUCCEEDED
+          - FAILED
+          - UNKNOWN
+          description: ACCEPTED means the device accepted the command; SUCCEEDED means execution was confirmed;
+            UNKNOWN means the outcome is unknown. Command status does not replace reading the device state.
+        updated_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - command_service
+      - command_id
+      - device_id
+      - status
+      - updated_at
+      additionalProperties: false
+    DeviceState:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        kind:
+          type: string
+          example: HEATING
+          enum:
+          - HEATING
+          - LIGHT
+          - GATE
+        state:
+          type: string
+          example: 'ON'
+          enum:
+          - 'ON'
+          - 'OFF'
+          - LOCKED
+          - UNLOCKED
+        observed_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - kind
+      - state
+      - observed_at
+      additionalProperties: false
+      description: 'HEATING/LIGHT: ON or OFF; GATE: LOCKED or UNLOCKED. Returns confirmed observations
+        only; a failed state read returns an HTTP error.'
+      oneOf:
+      - properties:
+          kind:
+            enum:
+            - HEATING
+            - LIGHT
+          state:
+            enum:
+            - 'ON'
+            - 'OFF'
+      - properties:
+          kind:
+            enum:
+            - GATE
+          state:
+            enum:
+            - LOCKED
+            - UNLOCKED
+    ConnectionCheck:
+      type: object
+      properties:
+        type:
+          type: string
+          example: heating
+        connection_mode:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+        connection_settings:
+          type: object
+          properties:
+            model:
+              type: string
+              example: demo-v1
+            address:
+              type: string
+              example: https://device.example.test
+              format: uri
+            credential_ref:
+              type: string
+              example: device-secret-1
+          required:
+          - model
+          - address
+          additionalProperties: false
+          description: Address on an allowed device network; new devices use HTTPS. credential_ref is
+            a server-side reference to a secret, not a password. Arbitrary external addresses are not
+            allowed.
+      required:
+      - type
+      - connection_mode
+      - connection_settings
+      additionalProperties: false
+    DeviceSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          example: 1
+        name:
+          type: string
+          example: Bedroom sensor
+        type:
+          type: string
+          example: temperature
+        kind:
+          type: string
+          example: SENSOR
+          enum:
+          - SENSOR
+          - HEATING
+          - LIGHT
+          - GATE
+          - CAMERA
+        location:
+          type: string
+          example: Bedroom
+        connection_mode:
+          type: string
+          example: LEGACY
+          enum:
+          - LEGACY
+          - HTTPS
+        telemetry_mode:
+          type: string
+          example: PULL
+          enum:
+          - PULL
+          - PUSH
+          - NONE
+        metric:
+          type: string
+          example: temperature
+        unit:
+          type: string
+          example: °C
+        connection_settings:
+          type: object
+          properties:
+            model:
+              type: string
+              example: demo-v1
+            address:
+              type: string
+              example: https://device.example.test
+              format: uri
+          required:
+          - model
+          - address
+          additionalProperties: false
+          description: 'Public connection settings: supported model and address without embedded credentials.
+            Secrets and references to them are not returned.'
+      required:
+      - id
+      - name
+      - type
+      - kind
+      - location
+      - connection_mode
+      - telemetry_mode
+      - connection_settings
+      additionalProperties: false
