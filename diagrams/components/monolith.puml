@@ -4,7 +4,7 @@
 title Warmhouse — компоненты монолита при интеграции MVP
 LAYOUT_TOP_DOWN()
 
-Container(proxy, "Обратный прокси", "Nginx", "Старый API, регистрация и настройки")
+Container(proxy, "Обратный прокси", "Nginx", "Старый API, список устройств, регистрация и настройки")
 together {
 Container(telemetry, "Телеметрия", "HTTP API", "Хранит измерения; опрашивает старые датчики")
 Container(connectivity, "Взаимодействие с устройствами", "HTTP API", "Проверяет связь; доставляет команды")
@@ -12,7 +12,7 @@ Container(video, "Видеонаблюдение", "HTTP API", "Получает
 }
 
 Container_Boundary(monolith, "Монолит — Go / Gin") {
-    Component(api, "Пользовательский API", "SensorHandler — расширить", "Старые маршруты; регистрация и настройки новых типов устройств")
+    Component(api, "Пользовательский API", "SensorHandler — расширить", "Старые маршруты; список, регистрация и настройки устройств")
     Component(registry, "Реестр устройств", "Пакет db / pgx — расширить", "Хранит карточки, типы, способ подключения и параметры устройств")
     Component(temperatureClient, "Клиент температуры", "TemperatureService — перенастроить", "Получает сохранённые показания из телеметрии")
     Component(connectivityClient, "Клиент взаимодействия", "HTTP-клиент — добавить", "Передаёт введённые параметры для проверки связи")
@@ -24,7 +24,7 @@ ContainerDb(db, "База монолита", "PostgreSQL", "Существующ
 System_Ext(equipment, "Старое оборудование", "Датчики и контроллеры отопления")
 
 Rel(proxy, api, "Запросы пользователя", "HTTP")
-Rel(api, registry, "Читает и меняет записи", "Вызов")
+Rel(api, registry, "Список с фильтрами; чтение и изменение записей", "Вызов")
 Rel(api, temperatureClient, "Получает температуру для ответа", "Вызов")
 Rel_U(temperatureClient, telemetry, "Совместимый API температуры", "HTTP")
 Rel(api, connectivityClient, "Проверяет подключение перед сохранением", "Вызов")

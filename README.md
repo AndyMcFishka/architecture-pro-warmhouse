@@ -56,6 +56,8 @@
 
 ### 5. Визуализация контекста системы — диаграмма С4
 
+![Диаграмма текущего контекста системы (PlantUML)](diagrams/as-is-context.png)
+
 [Диаграмма текущего контекста системы (PlantUML)](diagrams/as-is-context.puml)
 
 # Задание 2. Проектирование микросервисной архитектуры
@@ -64,39 +66,77 @@
 
 **Диаграмма контейнеров (Containers)**
 
+![Диаграмма контейнеров MVP (PlantUML)](diagrams/to-be-containers.png)
+
 [Диаграмма контейнеров MVP (PlantUML)](diagrams/to-be-containers.puml)
 
 **Диаграмма компонентов (Components)**
 
+![Взаимодействие с устройствами (PlantUML)](diagrams/components/connectivity.png)
+
 [Взаимодействие с устройствами (PlantUML)](diagrams/components/connectivity.puml)
+
+![Телеметрия (PlantUML)](diagrams/components/telemetry.png)
 
 [Телеметрия (PlantUML)](diagrams/components/telemetry.puml)
 
+![Отопление (PlantUML)](diagrams/components/heating.png)
+
 [Отопление (PlantUML)](diagrams/components/heating.puml)
+
+![Освещение (PlantUML)](diagrams/components/lighting.png)
 
 [Освещение (PlantUML)](diagrams/components/lighting.puml)
 
+![Ворота (PlantUML)](diagrams/components/gates.png)
+
 [Ворота (PlantUML)](diagrams/components/gates.puml)
+
+![Видеонаблюдение (PlantUML)](diagrams/components/video.png)
 
 [Видеонаблюдение (PlantUML)](diagrams/components/video.puml)
 
+![Сценарии (PlantUML)](diagrams/components/scenarios.png)
+
 [Сценарии (PlantUML)](diagrams/components/scenarios.puml)
+
+![Монолит: интеграция с новыми сервисами (PlantUML)](diagrams/components/monolith.png)
 
 [Монолит: интеграция с новыми сервисами (PlantUML)](diagrams/components/monolith.puml)
 
 **Диаграмма кода (Code)**
 
+![Отправка команды отоплению и повтор запроса (PlantUML)](diagrams/code/heating-command.png)
+
 [Отправка команды отоплению и повтор запроса (PlantUML)](diagrams/code/heating-command.puml)
+
+![последовательность](diagrams/code/telemetry-push.png)
+
+![классы](diagrams/code/telemetry-classes.png)
 
 Получение телеметрии от новых устройств: [последовательность](diagrams/code/telemetry-push.puml) · [классы](diagrams/code/telemetry-classes.puml)
 
+![последовательность](diagrams/code/telemetry-poll.png)
+
+![классы](diagrams/code/telemetry-classes.png)
+
 Получение телеметрии от старых устройств: [последовательность](diagrams/code/telemetry-poll.puml) · [классы](diagrams/code/telemetry-classes.puml)
 
+![последовательность](diagrams/code/video-view.png)
+
+![классы](diagrams/code/video-classes.png)
+
 Просмотр видеопотока: [последовательность](diagrams/code/video-view.puml) · [классы](diagrams/code/video-classes.puml)
+
+![последовательность](diagrams/code/scenario-execution.png)
+
+![классы](diagrams/code/scenarios-classes.png)
 
 Выполнение сценария по измерению: [последовательность](diagrams/code/scenario-execution.puml) · [классы](diagrams/code/scenarios-classes.puml)
 
 # Задание 3. Разработка ER-диаграммы
+
+![Общая ER-диаграмма MVP (PlantUML)](diagrams/er.png)
 
 [Общая ER-диаграмма MVP (PlantUML)](diagrams/er.puml)
 
@@ -125,23 +165,35 @@
 
 [Temperature API на Python и Flask](apps/temperature_api/main.py), образ `python:3.13-slim`. Каждый запрос генерирует температуру с плавающей точкой от −273 до 5500 °C. Два последовательных сгенерированных показания различаются независимо от датчика. Предыдущее значение хранится в одной глобальной переменной под локом и сбрасывается при перезапуске.
 
-[Docker Compose](apps/docker-compose.yml) запускает монолит, temperature-api и PostgreSQL. База инициализируется через [init.sql](apps/smart_home/init.sql), данные сохраняются в volume.
-
 Запуск из корня репозитория:
 
 ```bash
 docker compose -f apps/docker-compose.yml up --build -d --wait
 ```
 
-Монолит доступен на порту 8080, temperature-api — на 8081. [Инструкция и проверка](apps/README.md).
-
 # **Задание 6. Разработка MVP**
 
-Необходимо создать новые микросервисы и обеспечить их интеграции с существующим монолитом для плавного перехода к микросервисной архитектуре. 
+Монолит сохраняет реестр и настройки устройств. Новые сервисы работают с ним по HTTP:
 
-### **Что нужно сделать**
+| Сервис | Язык |
+| --- | --- |
+| [Взаимодействие с устройствами](apps/connectivity) | Python |
+| [Телеметрия](apps/telemetry) | Java |
+| [Сценарии](apps/scenarios) | C# |
+| [Отопление](apps/heating) | Kotlin |
+| [Освещение](apps/lighting) | TypeScript |
+| [Ворота](apps/gates) | PHP |
+| [Видео](apps/video) | Ruby |
 
-1. Создайте новые микросервисы для управления телеметрией и устройствами (с простейшей логикой), которые будут интегрированы с существующим монолитным приложением. Каждый микросервис на своем ООП языке.
-2. Обеспечьте взаимодействие между микросервисами и монолитом (при желании с помощью брокера сообщений), чтобы постепенно перенести функциональность из монолита в микросервисы. 
+Запуск из корня репозитория:
 
-В результате у вас должны быть созданы Dockerfiles и docker-compose для запуска микросервисов. 
+```bash
+docker compose -f apps/docker-compose.yml up --build -d --wait
+python3 apps/tests/integration.py --restart
+```
+
+Общий API: `http://localhost:8090`. Монолит: `http://localhost:8080`, старый симулятор: `http://localhost:8081`.
+
+Проверка создаёт тестовые устройства, отправляет команды и измерения, проверяет повторы и запуск сценария. Сценарии поддерживают одно условие и одно действие, опрашивают телеметрию раз в пять секунд. Старые датчики опрашиваются раз в пять секунд для истории и сценариев. При чтении температуры через API монолита legacy-датчик запрашивается заново; для push-датчиков возвращается последнее сохранённое измерение.
+
+Демонстрационный запуск без аутентификации, с локальными учётными данными БД и одной репликой каждого сервиса.

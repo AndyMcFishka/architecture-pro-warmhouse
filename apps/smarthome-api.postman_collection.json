@@ -1,8 +1,8 @@
 {
     "info": {
         "_postman_id": "f8e3a123-4567-89ab-cdef-0123456789ab",
-        "name": "Smart Home Sensor API",
-        "description": "A collection for testing the Smart Home Sensor Management API",
+        "name": "Smart Home API",
+        "description": "Public Smart Home APIs. Explicit localhost addresses support Bruno import. Device, command and rule IDs match the existing test database; registration and command responses update the variables. Command requests generate a new Idempotency-Key each time; replace {{$guid}} with a fixed UUID to test retries. Telemetry pushes use the current time. Only host-accessible routes are included.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -13,14 +13,14 @@
                 "header": [],
                 "url": {
                     "raw": "http://localhost:8080/health",
-                    "protocol": "http",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "health"
-                    ]
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Check if the API is running"
             },
@@ -33,16 +33,16 @@
                 "header": [],
                 "url": {
                     "raw": "http://localhost:8080/api/v1/sensors",
-                    "protocol": "http",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors"
-                    ]
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Retrieve all sensors"
             },
@@ -54,18 +54,18 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
+                    "raw": "http://localhost:8080/api/v1/sensors/{{legacySensorId}}",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors",
-                        "1"
-                    ]
+                        "{{legacySensorId}}"
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Retrieve a specific sensor by ID"
             },
@@ -87,16 +87,16 @@
                 },
                 "url": {
                     "raw": "http://localhost:8080/api/v1/sensors",
-                    "protocol": "http",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors"
-                    ]
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Create a new sensor"
             },
@@ -117,18 +117,18 @@
                     "raw": "{\n    \"name\": \"Updated Living Room Temperature\",\n    \"type\": \"temperature\",\n    \"location\": \"Living Room\",\n    \"unit\": \"°C\"\n}"
                 },
                 "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
+                    "raw": "http://localhost:8080/api/v1/sensors/{{legacySensorId}}",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors",
-                        "1"
-                    ]
+                        "{{legacySensorId}}"
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Update an existing sensor"
             },
@@ -140,18 +140,18 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
+                    "raw": "http://localhost:8080/api/v1/sensors/{{legacySensorId}}",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors",
-                        "1"
-                    ]
+                        "{{legacySensorId}}"
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Delete a sensor"
             },
@@ -172,23 +172,1105 @@
                     "raw": "{\n    \"value\": 22.5,\n    \"status\": \"active\"\n}"
                 },
                 "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1/value",
-                    "protocol": "http",
+                    "raw": "http://localhost:8080/api/v1/sensors/{{legacySensorId}}/value",
                     "host": [
                         "localhost"
                     ],
-                    "port": "8080",
                     "path": [
                         "api",
                         "v1",
                         "sensors",
-                        "1",
+                        "{{legacySensorId}}",
                         "value"
-                    ]
+                    ],
+                    "protocol": "http",
+                    "port": "8080"
                 },
                 "description": "Update a sensor's value and status"
             },
             "response": []
+        },
+        {
+            "name": "Device Registry",
+            "item": [
+                {
+                    "name": "List registered devices",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8090",
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "query": [
+                                {
+                                    "key": "kind",
+                                    "value": "SENSOR",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "connection_mode",
+                                    "value": "LEGACY",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "telemetry_mode",
+                                    "value": "PULL",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "location",
+                                    "value": "Bedroom",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "temperature",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Reads the registry without polling equipment. Connection settings and credentials are omitted. Optional filters use exact matches and are combined with AND; no matches return an empty array. Devices are ordered by ID."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Register Push temperature sensor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Push temperature sensor\",\n    \"type\": \"temperature\",\n    \"location\": \"Push temperature sensor\",\n    \"connection_mode\": \"HTTPS\",\n    \"telemetry_mode\": \"PUSH\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"sensorId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Legacy temperature sensor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Legacy temperature sensor\",\n    \"type\": \"temperature\",\n    \"location\": \"Legacy temperature sensor\",\n    \"connection_mode\": \"LEGACY\",\n    \"telemetry_mode\": \"PULL\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"legacySensorId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Heating",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Heating\",\n    \"type\": \"heating\",\n    \"location\": \"Heating\",\n    \"connection_mode\": \"HTTPS\",\n    \"telemetry_mode\": \"NONE\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"heatingDeviceId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Lighting",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Lighting\",\n    \"type\": \"lighting\",\n    \"location\": \"Lighting\",\n    \"connection_mode\": \"HTTPS\",\n    \"telemetry_mode\": \"NONE\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"lightingDeviceId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Gate lock",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Gate lock\",\n    \"type\": \"gate\",\n    \"location\": \"Gate lock\",\n    \"connection_mode\": \"HTTPS\",\n    \"telemetry_mode\": \"NONE\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"gateDeviceId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Camera",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Stored in the existing sensors registry. type must be a supported type; kind/metric/unit are determined by the server. SENSOR LEGACY maps to PULL, SENSOR HTTPS to PUSH, all others to NONE. Before saving, the monolith checks the connection through connectivity. Connection settings and secrets are not included in the public response.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Camera\",\n    \"type\": \"camera\",\n    \"location\": \"Camera\",\n    \"connection_mode\": \"HTTPS\",\n    \"telemetry_mode\": \"NONE\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"demo-secret\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"cameraDeviceId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Read device settings without secrets",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices/{{legacySensorId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices",
+                                "{{legacySensorId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Data for the settings form. Does not poll equipment. Returns the model and connection address without passwords, tokens or credential_ref. The address must not contain embedded credentials."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update device settings (MVP extension)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/devices/{{legacySensorId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "devices",
+                                "{{legacySensorId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Replaces all settings. When the connection changes, checks connectivity through the connectivity service. Applies the same compatibility checks as registration. If credential_ref is omitted, the existing secret reference is preserved: reading and saving the public form does not remove credentials.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Bedroom sensor\",\n    \"type\": \"temperature\",\n    \"location\": \"Bedroom\",\n    \"connection_mode\": \"LEGACY\",\n    \"telemetry_mode\": \"PULL\",\n    \"connection_settings\": {\n        \"model\": \"demo-v1\",\n        \"address\": \"https://device.example.test\",\n        \"credential_ref\": \"device-secret-1\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Telemetry",
+            "item": [
+                {
+                    "name": "Accept a measurement from a new sensor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/telemetry/measurements",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "telemetry",
+                                "measurements"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "PUSH sensors only. Validates type, metric and unit against the registry. Responds after persistence. Uniqueness: device_id + measurement_id. An identical retry returns 200; a different payload returns 409. Late measurements are stored but do not replace a newer measurement according to measured_at.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"device_id\": {{sensorId}},\n    \"measurement_id\": \"{{$guid}}\",\n    \"metric\": \"temperature\",\n    \"value\": 21.5,\n    \"unit\": \"°C\",\n    \"measured_at\": \"{{$isoTimestamp}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Latest stored measurement",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/telemetry/devices/{{sensorId}}/latest?metric=temperature",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "telemetry",
+                                "devices",
+                                "{{sensorId}}",
+                                "latest"
+                            ],
+                            "query": [
+                                {
+                                    "key": "metric",
+                                    "value": "temperature"
+                                }
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "The client determines freshness from measured_at and its own age threshold; this request does not poll the device."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Read measurement history",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/telemetry/devices/{{sensorId}}/measurements?metric=temperature&from={{historyFrom}}&to={{historyTo}}&limit=100&offset=0",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "telemetry",
+                                "devices",
+                                "{{sensorId}}",
+                                "measurements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "metric",
+                                    "value": "temperature"
+                                },
+                                {
+                                    "key": "from",
+                                    "value": "{{historyFrom}}"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "{{historyTo}}"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "100"
+                                },
+                                {
+                                    "key": "offset",
+                                    "value": "0"
+                                }
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Interval [from, to), with from < to. Sorted by measured_at, then measurement_id, ascending. Empty history returns []."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Heating",
+            "item": [
+                {
+                    "name": "Set device state",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/heating/devices/{{heatingDeviceId}}/commands",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "heating",
+                                "devices",
+                                "{{heatingDeviceId}}",
+                                "commands"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "The key is unique within the service. The command is stored before delivery. The same key and parameters return the same command; different parameters return 409. A delivery timeout returns UNKNOWN. Reuse the same key if the HTTP response is lost. The physical command is not automatically resent.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"enabled\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"heatingCommandId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Read the stored command result",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/heating/commands/{{heatingCommandId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "heating",
+                                "commands",
+                                "{{heatingCommandId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the stored command result"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Read the actual device state",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/heating/devices/{{heatingDeviceId}}/state",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "heating",
+                                "devices",
+                                "{{heatingDeviceId}}",
+                                "state"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the actual device state"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Lighting",
+            "item": [
+                {
+                    "name": "Set device state",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/lighting/devices/{{lightingDeviceId}}/commands",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "lighting",
+                                "devices",
+                                "{{lightingDeviceId}}",
+                                "commands"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "The key is unique within the service. The command is stored before delivery. The same key and parameters return the same command; different parameters return 409. A delivery timeout returns UNKNOWN. Reuse the same key if the HTTP response is lost. The physical command is not automatically resent.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"enabled\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"lightingCommandId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Read the stored command result",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/lighting/commands/{{lightingCommandId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "lighting",
+                                "commands",
+                                "{{lightingCommandId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the stored command result"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Read the actual device state",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/lighting/devices/{{lightingDeviceId}}/state",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "lighting",
+                                "devices",
+                                "{{lightingDeviceId}}",
+                                "state"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the actual device state"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Gates",
+            "item": [
+                {
+                    "name": "Set device state",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/gates/devices/{{gateDeviceId}}/commands",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "gates",
+                                "devices",
+                                "{{gateDeviceId}}",
+                                "commands"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "The key is unique within the service. The command is stored before delivery. The same key and parameters return the same command; different parameters return 409. A delivery timeout returns UNKNOWN. Reuse the same key if the HTTP response is lost. The physical command is not automatically resent.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"locked\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"gatesCommandId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Read the stored command result",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/gates/commands/{{gatesCommandId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "gates",
+                                "commands",
+                                "{{gatesCommandId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the stored command result"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Read the actual device state",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/gates/devices/{{gateDeviceId}}/state",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "gates",
+                                "devices",
+                                "{{gateDeviceId}}",
+                                "state"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read the actual device state"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Video",
+            "item": [
+                {
+                    "name": "Get a temporary stream link",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/video/cameras/{{cameraDeviceId}}/stream-link",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "video",
+                                "cameras",
+                                "{{cameraDeviceId}}",
+                                "stream-link"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Reads camera settings from the monolith and requests a link directly from the camera. The browser plays a compatible stream directly. Permanent camera credentials are not returned. Request a new link after expiry."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Scenarios",
+            "item": [
+                {
+                    "name": "Create a rule",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "One measurement condition triggers one fixed action. Validates the metric, unit and target device type. A new rule starts with previous_match=false. A false-to-true transition triggers a run; stale measurements are skipped without changing the previous condition state.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"enabled\": true,\n    \"sensor_id\": {{sensorId}},\n    \"metric\": \"temperature\",\n    \"comparison\": \"LT\",\n    \"threshold\": 18,\n    \"unit\": \"°C\",\n    \"max_age_seconds\": 60,\n    \"action\": \"HEATING_ON\",\n    \"target_device_id\": {{heatingDeviceId}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set(\"ruleId\", pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List rules",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "List rules"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Read a rule",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules/{{ruleId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules",
+                                "{{ruleId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Read a rule"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Replace a rule",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules/{{ruleId}}",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules",
+                                "{{ruleId}}"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Replaces all fields. Repeating the same values does not change previous_match or create a new run. When the rule changes, previous_match is reset to false; comparing fields, updating the rule and resetting the condition are atomic with respect to condition evaluation. Existing runs retain their original action snapshots.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"enabled\": true,\n    \"sensor_id\": {{sensorId}},\n    \"metric\": \"temperature\",\n    \"comparison\": \"LT\",\n    \"threshold\": 18,\n    \"unit\": \"°C\",\n    \"max_age_seconds\": 60,\n    \"action\": \"HEATING_ON\",\n    \"target_device_id\": {{heatingDeviceId}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Enable or disable a rule",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules/{{ruleId}}/enabled",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules",
+                                "{{ruleId}}",
+                                "enabled"
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Changing a disabled rule to enabled sets previous_match=false. Enabling an already enabled rule does not reset the condition. Disabling a rule does not cancel commands already sent.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"enabled\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List scenario runs",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:8090/api/v1/scenarios/rules/{{ruleId}}/runs?limit=100&offset=0",
+                            "host": [
+                                "localhost"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "scenarios",
+                                "rules",
+                                "{{ruleId}}",
+                                "runs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "100"
+                                },
+                                {
+                                    "key": "offset",
+                                    "value": "0"
+                                }
+                            ],
+                            "protocol": "http",
+                            "port": "8090"
+                        },
+                        "description": "Newest first: created_at DESC, id DESC. The run ID is used as the Idempotency-Key for the domain service. Commands and service mappings are defined in code; there are no action catalogs."
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "event": [
@@ -215,6 +1297,76 @@
         {
             "key": "baseUrl",
             "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "proxyUrl",
+            "value": "http://localhost:8090",
+            "type": "string"
+        },
+        {
+            "key": "sensorId",
+            "value": "6",
+            "type": "string"
+        },
+        {
+            "key": "legacySensorId",
+            "value": "7",
+            "type": "string"
+        },
+        {
+            "key": "heatingDeviceId",
+            "value": "2",
+            "type": "string"
+        },
+        {
+            "key": "lightingDeviceId",
+            "value": "3",
+            "type": "string"
+        },
+        {
+            "key": "gateDeviceId",
+            "value": "4",
+            "type": "string"
+        },
+        {
+            "key": "cameraDeviceId",
+            "value": "5",
+            "type": "string"
+        },
+        {
+            "key": "ruleId",
+            "value": "dee218fc-a823-4055-a17a-7afc6974f52e",
+            "type": "string"
+        },
+        {
+            "key": "location",
+            "value": "check-10d5f6df",
+            "type": "string"
+        },
+        {
+            "key": "historyFrom",
+            "value": "2020-01-01T00:00:00Z",
+            "type": "string"
+        },
+        {
+            "key": "historyTo",
+            "value": "2099-01-01T00:00:00Z",
+            "type": "string"
+        },
+        {
+            "key": "heatingCommandId",
+            "value": "b858ecea-6d07-483c-88b9-c87a4bc63ea3",
+            "type": "string"
+        },
+        {
+            "key": "lightingCommandId",
+            "value": "073c299b-70cc-480d-8195-ac54764aaf7f",
+            "type": "string"
+        },
+        {
+            "key": "gatesCommandId",
+            "value": "705124fe-3646-021f-8cf5-acbec728d598",
             "type": "string"
         }
     ]

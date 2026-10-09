@@ -49,6 +49,8 @@ func main() {
 	sensorHandler := handlers.NewSensorHandler(database, temperatureService)
 	sensorHandler.RegisterRoutes(apiRoutes)
 
+	handlers.RegisterDevices(router, database, getEnv("LEGACY_TEMPERATURE_API_URL", "http://temperature-api:8081"), getEnv("CONNECTIVITY_URL", "http://connectivity:8080"))
+
 	// Start server
 	srv := &http.Server{
 		Addr:    getEnv("PORT", ":8080"),

@@ -15,7 +15,7 @@ values_lock = Lock()
 
 def next_temperature():
     """Generate a float in [-273, 5500] different from the previous reading."""
-    # ponytail: one process and an in-memory history; share state if adding workers.
+    # one process and an in-memory history; share state if adding workers.
     global last_value
     with values_lock:
         # 5500 °C is the Sun's surface temperature ;)

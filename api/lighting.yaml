@@ -2,8 +2,7 @@ openapi: 3.0.3
 info:
   title: Warmhouse — Lighting
   version: 1.0.0
-  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
-    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+  description: MVP contract. Synchronous HTTP API with JSON. Equipment is mocked in the demo. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
 servers:
 - url: http://lighting:8080
   description: Direct service address on the Docker network; public paths are available through the proxy

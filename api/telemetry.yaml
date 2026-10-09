@@ -2,8 +2,7 @@ openapi: 3.0.3
 info:
   title: Warmhouse — Telemetry
   version: 1.0.0
-  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
-    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+  description: MVP contract. Synchronous HTTP API with JSON. Equipment is mocked in the demo. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
 servers:
 - url: http://telemetry:8080
   description: Direct service address on the Docker network; public paths are available through the proxy
@@ -268,7 +267,7 @@ paths:
                 status: active
                 sensor_id: '1'
                 sensor_type: temperature
-                description: Latest stored measurement
+                description: Temperature measurement
         '400':
           description: Invalid parameters
           content:
@@ -301,8 +300,9 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Service or dependency unavailable
-      description: Reads a stored measurement without triggering a poll through the monolith. timestamp
-        = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
+      description: Reads legacy sensors on demand through the internal monolith API. Push sensors return
+        their latest stored measurement. On-demand readings are not stored; background polling fills
+        history independently. timestamp = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
         at the same location return 409.
       parameters:
       - name: deviceId
@@ -331,7 +331,7 @@ paths:
                 status: active
                 sensor_id: '1'
                 sensor_type: temperature
-                description: Latest stored measurement
+                description: Temperature measurement
         '400':
           description: Invalid parameters
           content:
@@ -364,8 +364,9 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Service or dependency unavailable
-      description: Reads a stored measurement without triggering a poll through the monolith. timestamp
-        = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
+      description: Reads legacy sensors on demand through the internal monolith API. Push sensors return
+        their latest stored measurement. On-demand readings are not stored; background polling fills
+        history independently. timestamp = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
         at the same location return 409.
       parameters:
       - name: location
@@ -484,7 +485,7 @@ components:
           example: temperature
         description:
           type: string
-          example: Latest stored measurement
+          example: Temperature measurement
       required:
       - value
       - unit

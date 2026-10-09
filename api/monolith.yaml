@@ -2,8 +2,7 @@ openapi: 3.0.3
 info:
   title: Warmhouse — Monolith
   version: 1.0.0
-  description: Proposed MVP contract. Synchronous HTTP API with JSON. New endpoints are not implemented
-    yet. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+  description: MVP contract. Synchronous HTTP API with JSON. Equipment is mocked in the demo. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
 servers:
 - url: http://monolith:8080
   description: Direct service address on the Docker network; public paths are available through the proxy
@@ -40,8 +39,16 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Internal server error
-      description: Existing endpoint. Temperature is refreshed through the HTTP client. If that call fails,
-        stored data is returned.
+        '503':
+          description: Temperature service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Temperature service unavailable
+      description: Legacy temperature is read from the sensor on every request through telemetry and the internal
+        legacy adapter. Push sensors return their latest stored measurement. Failed temperature reads return 503.
     post:
       summary: Create a sensor (existing API)
       operationId: post_api_v1_sensors
@@ -126,6 +133,14 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Resource or measurement not found
+        '503':
+          description: Temperature service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Temperature service unavailable
       parameters:
       - name: id
         in: path
@@ -332,7 +347,7 @@ paths:
                     - stale
                   description:
                     type: string
-                    example: Latest stored measurement
+                    example: Temperature measurement
                 required:
                 - value
                 - unit
@@ -347,7 +362,7 @@ paths:
                 timestamp: '2026-10-07T09:00:00Z'
                 location: Bedroom
                 status: active
-                description: Latest stored measurement
+                description: Temperature measurement
         '400':
           description: Invalid parameters
           content:
@@ -372,6 +387,70 @@ paths:
           type: string
           example: Bedroom
   /api/v1/devices:
+    get:
+      summary: List registered devices
+      operationId: get_api_v1_devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+              example:
+              - id: 1
+                name: Bedroom sensor
+                type: temperature
+                kind: SENSOR
+                location: Bedroom
+                connection_mode: LEGACY
+                telemetry_mode: PULL
+                metric: temperature
+                unit: °C
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Reads the registry without polling equipment. Connection settings and
+        credentials are omitted. Optional filters use exact matches and are combined with
+        AND; no matches return an empty array. Devices are ordered by ID.
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          example: SENSOR
+      - name: connection_mode
+        in: query
+        required: false
+        schema:
+          type: string
+          example: LEGACY
+      - name: telemetry_mode
+        in: query
+        required: false
+        schema:
+          type: string
+          example: PULL
+      - name: location
+        in: query
+        required: false
+        schema:
+          type: string
+          example: Bedroom
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          example: temperature
     post:
       summary: Register a device (MVP extension)
       operationId: post_api_v1_devices

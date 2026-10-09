@@ -7,28 +7,33 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    - postgres_data:/var/lib/postgresql/data
+    - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d smarthome"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres -d smarthome
       interval: 5s
       timeout: 3s
       retries: 10
     networks:
-      - smarthome-network
-
+    - smarthome-network
   temperature-api:
     build: ./temperature_api
     ports:
-      - "8081:8081"
+    - 127.0.0.1:8081:8081
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health', timeout=2).close()"]
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8081/health',
+        timeout=2).close()
       interval: 5s
       timeout: 3s
       retries: 10
     networks:
-      - smarthome-network
-
+    - smarthome-network
   app:
     build:
       context: ./smart_home
@@ -39,18 +44,202 @@ services:
         condition: service_healthy
       temperature-api:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
-      - TEMPERATURE_API_URL=http://temperature-api:8081
+    - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
+    - TEMPERATURE_API_URL=http://telemetry:8080
+    - LEGACY_TEMPERATURE_API_URL=http://temperature-api:8081
+    - CONNECTIVITY_URL=http://connectivity:8080
     ports:
-      - "8080:8080"
+    - 127.0.0.1:8080:8080
     restart: unless-stopped
     networks:
-      - smarthome-network
-
+    - smarthome-network
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  db-init:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+    - ./infra/init.sql:/init.sql:ro
+    command:
+    - psql
+    - -h
+    - postgres
+    - -U
+    - postgres
+    - -d
+    - smarthome
+    - -v
+    - ON_ERROR_STOP=1
+    - -f
+    - /init.sql
+    networks:
+    - smarthome-network
+  connectivity:
+    build: ./connectivity
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://connectivity:connectivity@postgres:5432/smarthome
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8080/health',timeout=2)
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  telemetry:
+    build: ./telemetry
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/smarthome
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  heating:
+    build: ./heating
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/smarthome
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  lighting:
+    build: ./lighting
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://lighting:lighting@postgres:5432/smarthome
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  gates:
+    build: ./gates
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_DSN: pgsql:host=postgres;port=5432;dbname=smarthome
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  video:
+    build: ./video
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment: {}
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  scenarios:
+    build: ./scenarios
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: Host=postgres;Database=smarthome;Username=scenarios;Password=scenarios
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+    - smarthome-network
+  proxy:
+    image: nginx:1.27-alpine
+    volumes:
+    - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+    - 127.0.0.1:8090:8080
+    depends_on:
+      connectivity:
+        condition: service_healthy
+      telemetry:
+        condition: service_healthy
+      heating:
+        condition: service_healthy
+      lighting:
+        condition: service_healthy
+      gates:
+        condition: service_healthy
+      video:
+        condition: service_healthy
+      scenarios:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+    - smarthome-network
 volumes:
-  postgres_data:
-
+  postgres_data: null
 networks:
   smarthome-network:
     driver: bridge
