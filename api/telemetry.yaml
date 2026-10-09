@@ -1,0 +1,498 @@
+openapi: 3.0.3
+info:
+  title: Warmhouse — Telemetry
+  version: 1.0.0
+  description: MVP contract. Synchronous HTTP API with JSON. Equipment is mocked in the demo. Authorization is outside the demo MVP; internal routes are not exposed through the proxy.
+servers:
+- url: http://telemetry:8080
+  description: Direct service address on the Docker network; public paths are available through the proxy
+    without rewriting the path.
+paths:
+  /api/v1/telemetry/measurements:
+    post:
+      summary: Accept a measurement from a new sensor
+      operationId: post_api_v1_telemetry_measurements
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measurement'
+              example:
+                device_id: 1
+                measurement_id: 123e4567-e89b-42d3-a456-426614174000
+                metric: temperature
+                value: 21.5
+                unit: °C
+                measured_at: '2026-10-07T09:00:00Z'
+                received_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '422':
+          description: Unsupported device type or operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unsupported device type or operation
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+        '200':
+          description: Identical measurement already stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measurement'
+              example:
+                device_id: 1
+                measurement_id: 123e4567-e89b-42d3-a456-426614174000
+                metric: temperature
+                value: 21.5
+                unit: °C
+                measured_at: '2026-10-07T09:00:00Z'
+                received_at: '2026-10-07T09:00:00Z'
+      description: 'PUSH sensors only. Validates type, metric and unit against the registry. Responds
+        after persistence. Uniqueness: device_id + measurement_id. An identical retry returns 200; a different
+        payload returns 409. Late measurements are stored but do not replace a newer measurement according
+        to measured_at.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeasurementInput'
+            example:
+              device_id: 1
+              measurement_id: 123e4567-e89b-42d3-a456-426614174000
+              metric: temperature
+              value: 21.5
+              unit: °C
+              measured_at: '2026-10-07T09:00:00Z'
+  /api/v1/telemetry/devices/{deviceId}/latest:
+    get:
+      summary: Latest stored measurement
+      operationId: get_api_v1_telemetry_devices_deviceId_latest
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Measurement'
+              example:
+                device_id: 1
+                measurement_id: 123e4567-e89b-42d3-a456-426614174000
+                metric: temperature
+                value: 21.5
+                unit: °C
+                measured_at: '2026-10-07T09:00:00Z'
+                received_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: The client determines freshness from measured_at and its own age threshold; this request
+        does not poll the device.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - name: metric
+        in: query
+        required: true
+        schema:
+          type: string
+          example: temperature
+  /api/v1/telemetry/devices/{deviceId}/measurements:
+    get:
+      summary: Read measurement history
+      operationId: get_api_v1_telemetry_devices_deviceId_measurements
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Measurement'
+              example:
+              - device_id: 1
+                measurement_id: 123e4567-e89b-42d3-a456-426614174000
+                metric: temperature
+                value: 21.5
+                unit: °C
+                measured_at: '2026-10-07T09:00:00Z'
+                received_at: '2026-10-07T09:00:00Z'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Interval [from, to), with from < to. Sorted by measured_at, then measurement_id, ascending.
+        Empty history returns [].
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - name: metric
+        in: query
+        required: true
+        schema:
+          type: string
+          example: temperature
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          example: 100
+          maximum: 1000
+          default: 100
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+  /temperature/{deviceId}:
+    get:
+      summary: Compatible temperature API for the monolith
+      operationId: get_temperature_deviceId
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemperatureResponse'
+              example:
+                value: 21.5
+                unit: °C
+                timestamp: '2026-10-07T09:00:00Z'
+                location: Bedroom
+                status: active
+                sensor_id: '1'
+                sensor_type: temperature
+                description: Temperature measurement
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Reads legacy sensors on demand through the internal monolith API. Push sensors return
+        their latest stored measurement. On-demand readings are not stored; background polling fills
+        history independently. timestamp = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
+        at the same location return 409.
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+  /temperature:
+    get:
+      summary: Compatible temperature API for the monolith
+      operationId: get_temperature
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemperatureResponse'
+              example:
+                value: 21.5
+                unit: °C
+                timestamp: '2026-10-07T09:00:00Z'
+                location: Bedroom
+                status: active
+                sensor_id: '1'
+                sensor_type: temperature
+                description: Temperature measurement
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid parameters
+        '404':
+          description: Resource or measurement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource or measurement not found
+        '409':
+          description: Identifier or configuration conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Identifier or configuration conflict
+        '503':
+          description: Service or dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Service or dependency unavailable
+      description: Reads legacy sensors on demand through the internal monolith API. Push sensors return
+        their latest stored measurement. On-demand readings are not stored; background polling fills
+        history independently. timestamp = measured_at. The stale threshold is configured in the service. Multiple temperature sensors
+        at the same location return 409.
+      parameters:
+      - name: location
+        in: query
+        required: true
+        schema:
+          type: string
+          example: Bedroom
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+      required:
+      - error
+      additionalProperties: false
+    MeasurementInput:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        measurement_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        metric:
+          type: string
+          example: temperature
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        measured_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - measurement_id
+      - metric
+      - value
+      - unit
+      - measured_at
+      additionalProperties: false
+    Measurement:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 1
+          example: 1
+        measurement_id:
+          type: string
+          example: 123e4567-e89b-42d3-a456-426614174000
+          format: uuid
+        metric:
+          type: string
+          example: temperature
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        measured_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        received_at:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+      required:
+      - device_id
+      - measurement_id
+      - metric
+      - value
+      - unit
+      - measured_at
+      - received_at
+      additionalProperties: false
+    TemperatureResponse:
+      type: object
+      properties:
+        value:
+          type: number
+          example: 21.5
+        unit:
+          type: string
+          example: °C
+        timestamp:
+          type: string
+          example: '2026-10-07T09:00:00Z'
+          format: date-time
+        location:
+          type: string
+          example: Bedroom
+        status:
+          type: string
+          example: active
+          enum:
+          - active
+          - stale
+        sensor_id:
+          type: string
+          example: '1'
+        sensor_type:
+          type: string
+          example: temperature
+        description:
+          type: string
+          example: Temperature measurement
+      required:
+      - value
+      - unit
+      - timestamp
+      - location
+      - status
+      - sensor_id
+      - sensor_type
+      - description
+      additionalProperties: false

@@ -1,0 +1,44 @@
+@startuml
+title Warmhouse — классы видеонаблюдения
+hide empty members
+skinparam classAttributeIconSize 0
+class VideoApi {
+  +getStreamLink(cameraId: ID): StreamLink
+}
+class StreamLinkService {
+  +getStreamLink(cameraId: ID): StreamLink
+}
+class MonolithClient {
+  +getCamera(cameraId: ID): CameraSettings
+}
+class CameraAdapter {
+  +requestStreamLink(settings: CameraSettings): StreamLink
+}
+class CameraSettings {
+  +deviceId: ID
+  +type: String
+  +apiUrl: URL
+  -credentials: Secret
+}
+class StreamLink {
+  +url: URL
+  +expiresAt: DateTime
+}
+VideoApi --> StreamLinkService
+StreamLinkService --> MonolithClient : читает настройки
+StreamLinkService --> CameraAdapter : запрашивает ссылку
+MonolithClient ..> CameraSettings
+CameraAdapter ..> CameraSettings
+CameraAdapter ..> StreamLink
+VideoApi ..> StreamLink
+note bottom of StreamLinkService
+  Проверяет, что устройство — поддерживаемая камера.
+  Ошибки реестра и камеры возвращаются клиенту.
+  Своей БД и обработки видео нет.
+end note
+note bottom of StreamLink
+  Браузер получает поток напрямую от камеры.
+  По истечении ссылки запрашивает новую.
+  Постоянные credentials клиенту не возвращаются.
+end note
+@enduml

@@ -62,6 +62,8 @@ func (h *SensorHandler) GetSensors(c *gin.Context) {
 				log.Printf("Updated temperature data for sensor %d from external API", sensor.ID)
 			} else {
 				log.Printf("Failed to fetch temperature data for sensor %d: %v", sensor.ID, err)
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Temperature service unavailable"})
+				return
 			}
 		}
 	}
@@ -94,6 +96,8 @@ func (h *SensorHandler) GetSensorByID(c *gin.Context) {
 			log.Printf("Updated temperature data for sensor %d from external API", sensor.ID)
 		} else {
 			log.Printf("Failed to fetch temperature data for sensor %d: %v", sensor.ID, err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Temperature service unavailable"})
+			return
 		}
 	}
 

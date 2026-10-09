@@ -1,0 +1,69 @@
+@startuml
+!include <C4/C4_Container>
+
+title Warmhouse — контейнеры MVP
+LAYOUT_TOP_DOWN()
+
+Person(user, "Пользователь", "Управляет умным домом")
+
+System_Boundary(platform, "Warmhouse") {
+    Container(web, "Веб-клиент", "Браузер", "Интерфейс умного дома")
+    Container(proxy, "Обратный прокси", "Nginx", "Один вход, маршрутизация по URL")
+    Container(monolith, "Монолит", "Go / Gin", "Регистрация, настройки, реестр; API старого оборудования")
+    Container(connectivity, "Взаимодействие с устройствами", "HTTP API", "Проверка связи, команды и чтение состояния")
+    Container(telemetry, "Телеметрия", "HTTP API", "Приём новых показаний, опрос старых датчиков, история")
+    Container(heating, "Отопление", "HTTP API", "Команды и состояние отопления")
+    Container(lighting, "Освещение", "HTTP API", "Команды и состояние света")
+    Container(gates, "Ворота", "HTTP API", "Запереть / отпереть; состояние замка")
+    Container(video, "Видеонаблюдение", "HTTP API", "Доступ к потоку камеры")
+    Container(rules, "Сценарии", "HTTP API", "Опрос телеметрии и запуск команд")
+    ContainerDb(db, "Существующий сервер БД", "PostgreSQL", "Своя схема и роль у каждого сервиса с хранилищем. SQL-связи опущены")
+}
+
+System_Ext(legacy, "Старое оборудование", "Датчики и отопление")
+System_Ext(equipment, "Новые устройства партнёров", "Датчики, свет, ворота, отопление")
+System_Ext(camera, "Камеры партнёров", "API доступа и видеопоток")
+
+Rel(user, web, "Работает с домом")
+Rel(web, proxy, "Запросы API", "HTTPS / JSON")
+Rel(proxy, monolith, "Старый API; регистрация и настройки", "HTTP")
+Rel(proxy, telemetry, "Приём и чтение показаний", "HTTP")
+Rel(proxy, heating, "Отопление", "HTTP")
+Rel(proxy, lighting, "Свет", "HTTP")
+Rel(proxy, gates, "Ворота", "HTTP")
+Rel(proxy, video, "Доступ к видео", "HTTP")
+Rel(proxy, rules, "Настройка сценариев", "HTTP")
+
+Rel(monolith, telemetry, "Читает температуру", "HTTP")
+Rel(connectivity, monolith, "Настройки; команды и состояние старых устройств", "HTTP")
+Rel(monolith, connectivity, "Проверяет связь по введённым параметрам", "HTTP")
+Rel(telemetry, monolith, "Реестр и опрос старых датчиков", "HTTP")
+Rel(monolith, legacy, "Опрос и команды", "Старый протокол")
+Rel(equipment, proxy, "Датчики отправляют измерения", "HTTPS / JSON")
+Rel(heating, connectivity, "Команды и запрос состояния", "HTTP")
+Rel(lighting, connectivity, "Команды и запрос состояния", "HTTP")
+Rel(gates, connectivity, "Команды и запрос состояния", "HTTP")
+Rel(connectivity, equipment, "Проверка связи, команды и состояние", "HTTPS")
+Rel(video, monolith, "Данные камеры", "HTTP")
+Rel(video, camera, "Ссылка на поток", "HTTPS")
+Rel(web, camera, "Видео напрямую", "HTTPS")
+Rel(rules, telemetry, "Опрашивает показания", "HTTP")
+Rel(rules, heating, "Запускает команду", "HTTP")
+Rel(rules, lighting, "Запускает команду", "HTTP")
+Rel(rules, gates, "Запускает команду", "HTTP")
+
+
+note as auth_scope
+  За рамками демонстрационного MVP:
+  аутентификация и проверка прав.
+  Нужны до открытия доступа через интернет.
+end note
+
+legend bottom
+  Межсервисные вызовы — HTTP, без брокера.
+  SQL-связи опущены для читаемости.
+  Сценарии реагируют только на измерения датчиков.
+  Ответы на запросы состояния возвращаются по тем же HTTP-вызовам.
+  Проект демонстрационного MVP, запуск в изолированной среде.
+endlegend
+@enduml

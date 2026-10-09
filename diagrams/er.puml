@@ -1,0 +1,189 @@
+@startuml
+title Warmhouse — общая ER-диаграмма MVP
+hide circle
+skinparam nodesep 65
+skinparam ranksep 65
+skinparam packageStyle rectangle
+skinparam entity {
+  BackgroundColor #F4F8FC
+  BorderColor #436582
+}
+
+package "Монолит — существующая БД" {
+  entity "device_types" as types {
+    * code : varchar(50) <<PK>>
+    --
+    * name : varchar(100)
+    * kind : varchar(20)
+    metric : varchar(50)
+    unit : varchar(20)
+  }
+  entity "sensors — расширенный реестр устройств" as devices {
+    * id : integer <<PK>>
+    --
+    * name : varchar(100)
+    * type : varchar(50) <<FK device_types.code>>
+    * location : varchar(100)
+    * connection_mode : varchar(20)
+    * telemetry_mode : varchar(10)
+    * connection_settings : jsonb
+    * created_at : timestamptz
+    value : double precision
+    unit : varchar(20)
+    * status : varchar(20)
+    * last_updated : timestamptz
+  }
+}
+
+package "Телеметрия — схема telemetry" {
+  entity "measurements" as measurements {
+    * device_id : integer <<PK, REF>>
+    * measurement_id : uuid <<PK>>
+    --
+    * metric : varchar(50)
+    * value : numeric
+    * unit : varchar(20)
+    * measured_at : timestamptz
+    * received_at : timestamptz
+  }
+}
+
+package "Отопление — схема heating" {
+  entity "commands" as heating {
+    * id : uuid <<PK>>
+    --
+    * idempotency_key : uuid <<UQ>>
+    * device_id : integer <<REF>>
+    * desired_enabled : boolean
+    * status : varchar(20)
+    result : jsonb
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+package "Освещение — схема lighting" {
+  entity "commands" as lighting {
+    * id : uuid <<PK>>
+    --
+    * idempotency_key : uuid <<UQ>>
+    * device_id : integer <<REF>>
+    * desired_enabled : boolean
+    * status : varchar(20)
+    result : jsonb
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+package "Ворота — схема gates" {
+  entity "commands" as gates {
+    * id : uuid <<PK>>
+    --
+    * idempotency_key : uuid <<UQ>>
+    * device_id : integer <<REF>>
+    * desired_locked : boolean
+    * status : varchar(20)
+    result : jsonb
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+package "Взаимодействие — схема connectivity" {
+  entity "deliveries" as deliveries {
+    * command_service : varchar(20) <<PK>>
+    * command_id : uuid <<PK, REF>>
+    --
+    * device_id : integer <<REF>>
+    * operation : varchar(30)
+    * parameters : jsonb
+    * status : varchar(20)
+    result : jsonb
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+package "Сценарии — схема scenarios" {
+  entity "rules" as rules {
+    * id : uuid <<PK>>
+    --
+    * enabled : boolean
+    * sensor_id : integer <<REF>>
+    * metric : varchar(50)
+    * comparison : varchar(10)
+    * threshold : numeric
+    * unit : varchar(20)
+    * max_age_seconds : integer
+    * action : varchar(30)
+    * target_device_id : integer <<REF>>
+    * previous_match : boolean
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+  entity "runs" as runs {
+    * id : uuid <<PK>>
+    --
+    * rule_id : uuid <<FK rules.id>>
+    * action : varchar(30)
+    * target_device_id : integer <<REF>>
+    command_service : varchar(20)
+    command_id : uuid <<REF>>
+    * status : varchar(20)
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+types ||--o{ devices : тип
+ devices ||..o{ measurements : измерения
+ devices ||..o{ heating : команды отопления
+ devices ||..o{ lighting : команды света
+ devices ||..o{ gates : команды замка
+ devices ||..o{ deliveries : доставка
+ devices ||..o{ rules : sensor_id / условие
+ devices ||..o{ rules : target_device_id / действие
+ devices ||..o{ runs : устройство запуска
+ rules ||--o{ runs : запуски
+ heating |o..o| deliveries : heating
+ lighting |o..o| deliveries : lighting
+ gates |o..o| deliveries : gates
+ runs |o..o| heating : команда запуска
+ runs |o..o| lighting : команда запуска
+ runs |o..o| gates : команда запуска
+
+note top of devices
+  Существующая таблица sensors сохраняется и расширяется.
+  connection_mode: LEGACY или HTTPS.
+  telemetry_mode: PULL, PUSH или NONE.
+  connection_settings: адрес и параметры поддерживаемого адаптера.
+  Старые value, unit, status, last_updated сохраняются для совместимости;
+  они не заменяют историю измерений и фактическое состояние оборудования.
+end note
+
+note bottom of measurements
+  Новые датчики отправляют данные сами, старые опрашиваются через монолит.
+  Повтор той же пары device_id + measurement_id не создаёт запись.
+  Другие данные с тем же ключом — конфликт.
+  Последнее показание выбирается по measured_at, не по received_at.
+end note
+
+note bottom of deliveries
+  Одна команда — не более одной сохранённой попытки доставки.
+  command_service выбирает ровно одну таблицу commands.
+  Каждая доставка относится к одной команде; три связи — альтернативы.
+  Повтор возвращает сохранённый статус; другой payload — конфликт.
+  Неизвестный исход — UNKNOWN, без повторного физического действия.
+end note
+
+note bottom of runs
+  Снимок action и target_device_id фиксируется при создании запуска.
+  runs.id используется как idempotency_key команды.
+  Каждый запуск связан максимум с одной командой одного сервиса;
+  ручная команда может не иметь запуска. Три связи — альтернативы.
+  previous_match и новый запуск сохраняются одной транзакцией.
+end note
+
+
+@enduml

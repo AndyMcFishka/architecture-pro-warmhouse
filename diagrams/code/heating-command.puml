@@ -1,0 +1,66 @@
+@startuml
+title Warmhouse — отправка команды отоплению и повтор запроса
+hide footbox
+skinparam responseMessageBelowArrow true
+
+actor "Клиент\nчерез прокси" as caller
+box "Сервис отопления" #EAF2F8
+participant "HTTP API" as api
+participant "Управление отоплением" as control
+participant "Клиент взаимодействия" as client
+end box
+database "PostgreSQL\nсхема heating" as db
+participant "Сервис взаимодействия\nс устройствами" as connectivity
+
+caller -> api: Установить состояние(deviceId, state, key)
+api -> api: Проверить формат и обязательные поля
+break Некорректный запрос
+    api --> caller: Ошибка валидации
+end
+api -> control: setState(deviceId, state, key)
+control -> db: Атомарно создать команду по уникальному key\nили прочитать существующую
+break Ошибка БД
+    db --> control: Не удалось сохранить
+    control --> api: Ошибка, команда не отправлена
+    api --> caller: Сервис временно недоступен
+end
+db --> control: commandId, параметры, статус; создана ли запись
+
+alt Ключ уже есть, параметры отличаются
+    control --> api: Конфликт ключа
+    api --> caller: Повтор с другими параметрами отклонён
+else Ключ уже есть, параметры совпадают
+    control --> api: Существующий commandId и статус
+    api --> caller: Та же команда, без новой отправки
+else Новая команда сохранена
+    control -> client: send(commandId, deviceId, state)
+    client -> connectivity: HTTP: команда с постоянным commandId
+    note right of connectivity
+      Проверяет тип и параметры устройства.
+      Сохраняет попытку до обращения к оборудованию.
+      Повтор commandId не создаёт новую отправку.
+    end note
+    alt Получен ответ
+        connectivity --> client: Статус команды
+        client --> control: Полученный статус
+    else Таймаут или потеря ответа
+        client --> control: UNKNOWN
+    end
+    control -> db: Сохранить полученный статус
+    break Не удалось сохранить результат
+        db --> control: Ошибка БД
+        control --> api: Результат не сохранён
+        api --> caller: Ошибка; не создавать новый ключ
+    end
+    db --> control: Сохранено
+    control --> api: commandId, статус
+    api --> caller: commandId, статус
+end
+
+note over control, connectivity
+  Статус принятия команды не равен физическому выполнению.
+  Фактическое состояние отопления запрашивается отдельно.
+  После сбоя незавершённая команда требует проверки результата;
+  без достоверного ответа — UNKNOWN, без автоматической переотправки.
+end note
+@enduml

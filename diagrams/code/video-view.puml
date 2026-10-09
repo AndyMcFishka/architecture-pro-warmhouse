@@ -1,0 +1,43 @@
+@startuml
+title Warmhouse — просмотр видеопотока
+hide footbox
+actor "Веб-клиент" as web
+participant "Обратный прокси" as proxy
+box "Видеонаблюдение" #EAF2F8
+participant "HTTP API" as api
+participant "Получение ссылки" as stream
+end box
+participant "Реестр монолита" as registry
+participant "Камера партнёра" as camera
+
+web -> proxy: Получить ссылку(cameraId)
+proxy -> api: Передать запрос
+api -> stream: getStreamLink(cameraId)
+stream -> registry: Прочитать настройки через клиент монолита
+registry --> stream: Настройки / ошибка
+break Камеры нет, тип неверен или реестр недоступен
+    stream --> api: Ошибка
+    api --> proxy: Ошибка
+    proxy --> web: Просмотр недоступен
+end
+stream -> camera: Запросить временную ссылку\nчерез адаптер камеры (HTTPS)
+alt Камера выдала ссылку
+    camera --> stream: URL и срок действия
+    stream --> api: URL и срок действия
+    api --> proxy: URL и срок действия
+    proxy --> web: URL и срок действия
+    web -> camera: Получить поток по временной ссылке (HTTPS)
+    camera --> web: Видеопоток
+else Камера недоступна или отклонила запрос
+    camera --> stream: Ошибка / таймаут
+    stream --> api: Ошибка получения ссылки
+    api --> proxy: Ошибка
+    proxy --> web: Просмотр недоступен
+end
+note over web, camera
+  По истечении ссылки клиент запрашивает новую тем же путём.
+  Видео не проходит через сервис видеонаблюдения или прокси.
+  Постоянные учётные данные камеры остаются на сервере.
+  MVP: только просмотр совместимого потока, без записи и управления камерой.
+end note
+@enduml

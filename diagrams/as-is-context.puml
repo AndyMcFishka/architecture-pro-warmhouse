@@ -1,0 +1,18 @@
+@startuml
+!include <C4/C4_Context>
+
+title Warmhouse — As-Is: System Context
+
+Person(user, "User", "Remotely controls heating and views home temperature")
+Person(technician, "Installation Technician", "Installs and configures equipment in the home")
+
+System(warmhouse, "Warmhouse", "Monolithic system: heating control, temperature telemetry, device registration and inventory")
+System_Ext(equipment, "Heating System with Sensors and Controller", "Home equipment: measures temperature and executes heating commands")
+
+Rel(user, warmhouse, "Controls heating and views temperature", "Web UI")
+Rel(technician, equipment, "Installs and configures equipment on site")
+Rel(warmhouse, equipment, "Sends on/off commands and requests temperature", "Synchronous communication")
+Rel(equipment, warmhouse, "Registers on startup")
+
+SHOW_LEGEND()
+@enduml
